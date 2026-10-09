@@ -16,18 +16,11 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
 <body class="bg-slate-950 text-slate-100 m-0 p-0 overflow-hidden font-sans select-none">
-  <div id="root">
-    <div class="h-screen w-screen flex items-center justify-center text-slate-400 text-sm">
-      Cargando Master Plan desde la nube...
-    </div>
-  </div>
+  <div id="root"></div>
 
   <script>
-    const e = React.createElement;
-    const { useState, useEffect, useMemo } = React;
-
-    // PEGA AQUÍ TU URL DE GOOGLE APPS SCRIPT
-    const APPS_SCRIPT_URL = https://script.google.com/macros/s/AKfycbxFNa67xhJXT9pJWpzQlm_PDQI-R4KEpYZz6zJsDlAmbXnBATxG_LjrF0zQv4E3OrXm/exec;
+    // URL de Google Apps Script vinculada a tu Google Sheet
+    const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxFNa67xhJXT9pJWpzQlm_PDQI-R4KEpYZz6zJsDlAmbXnBATxG_LjrF0zQv4E3OrXm/exec";
 
     const CONFIG_PRECIOS = {
       duplexP1Base: 4850,
@@ -76,7 +69,7 @@
       34: { nombre: 'ROOFTOP (PENDIENTE ASIGNACIÓN)', img: null }
     };
 
-    const GENERAR_UNIDADES_BASE = () => {
+    function generarInventarioInicial() {
       const unidades = [];
 
       for (let i = 1; i <= 17; i++) {
@@ -84,7 +77,7 @@
         const supUtil = i === 17 ? 68.0 : 65.0;
         const tipologia = MAPEO_TIPOLOGIAS[i];
         unidades.push({
-          id: `U-${i.toString().padStart(2, '0')}`,
+          id: 'U-' + String(i).padStart(2, '0'),
           numero: i,
           tipo: 'Duplex Garden',
           nombreTipologia: tipologia ? tipologia.nombre : 'Duplex Garden',
@@ -93,8 +86,16 @@
           superficieUtil: supUtil,
           metrajeExterior: 25.0,
           precioUF: CONFIG_PRECIOS.duplexP1Base + (i * CONFIG_PRECIOS.duplexP1Incremento),
-          estado: 'disponible',
-          polygonCoords: `${xBase},110 ${xBase + 58},116 ${xBase + 58},300 ${xBase},295`
+          estado: i === 3 ? 'reservada' : i === 7 || i === 12 ? 'vendida' : 'disponible',
+          polygonCoords: `${xBase},110 ${xBase + 58},116 ${xBase + 58},300 ${xBase},295`,
+          lead: i === 3 ? {
+            nombre: 'Carlos Echeverría',
+            rut: '16.482.910-K',
+            email: 'carlos.ech@gmail.com',
+            telefono: '+56 9 8421 9940',
+            etapa: 'Evaluación Bancaria',
+            observaciones: 'Pre-aprobado Banco Santander. En tasación.'
+          } : undefined
         });
       }
 
@@ -104,7 +105,7 @@
         const supUtil = i === 34 ? 68.0 : 65.0;
         const tipologia = MAPEO_TIPOLOGIAS[i];
         unidades.push({
-          id: `U-${i.toString().padStart(2, '0')}`,
+          id: 'U-' + String(i).padStart(2, '0'),
           numero: i,
           tipo: 'Duplex Rooftop',
           nombreTipologia: tipologia ? tipologia.nombre : 'Duplex Rooftop',
@@ -113,8 +114,16 @@
           superficieUtil: supUtil,
           metrajeExterior: 16.0,
           precioUF: CONFIG_PRECIOS.duplexP4Base + (idx * CONFIG_PRECIOS.duplexP4Incremento),
-          estado: 'disponible',
-          polygonCoords: `${xBase},100 ${xBase + 58},106 ${xBase + 58},290 ${xBase},285`
+          estado: i === 22 ? 'vendida' : i === 28 ? 'reservada' : 'disponible',
+          polygonCoords: `${xBase},100 ${xBase + 58},106 ${xBase + 58},290 ${xBase},285`,
+          lead: i === 28 ? {
+            nombre: 'Valentina Silva M.',
+            rut: '18.902.114-3',
+            email: 'valesilva@empresa.cl',
+            telefono: '+56 9 7200 4581',
+            etapa: 'Cotización',
+            observaciones: 'Interesada en unidad con orientación norte.'
+          } : undefined
         });
       }
 
@@ -123,13 +132,13 @@
         const xSlot = 50 + index * 47;
         const ySlot = 45;
         unidades.push({
-          id: `EST-${num.toString().padStart(2, '0')}`,
+          id: 'EST-' + String(num).padStart(2, '0'),
           numero: num,
           tipo: 'Estacionamiento',
           nivel: 'Subterráneo',
           superficieUtil: null,
           precioUF: CONFIG_PRECIOS.estacionamiento,
-          estado: 'disponible',
+          estado: num % 7 === 0 ? 'vendida' : 'disponible',
           polygonCoords: `${xSlot},${ySlot} ${xSlot + 42},${ySlot + 4} ${xSlot + 42},${ySlot + 85} ${xSlot},${ySlot + 80}`
         });
       });
@@ -139,13 +148,13 @@
         const xSlot = 120 + index * 45;
         const ySlot = 195;
         unidades.push({
-          id: `EST-${num.toString().padStart(2, '0')}`,
+          id: 'EST-' + String(num).padStart(2, '0'),
           numero: num,
           tipo: 'Estacionamiento',
           nivel: 'Subterráneo',
           superficieUtil: null,
           precioUF: CONFIG_PRECIOS.estacionamiento,
-          estado: 'disponible',
+          estado: num === 30 ? 'reservada' : 'disponible',
           polygonCoords: `${xSlot},${ySlot} ${xSlot + 40},${ySlot} ${xSlot + 40},${ySlot + 75} ${xSlot},${ySlot + 75}`
         });
       }
@@ -155,7 +164,7 @@
         const xSlot = 535 + index * 40;
         const ySlot = 195;
         unidades.push({
-          id: `EST-${num.toString().padStart(2, '0')}`,
+          id: 'EST-' + String(num).padStart(2, '0'),
           numero: num,
           tipo: 'Estacionamiento',
           nivel: 'Subterráneo',
@@ -169,13 +178,13 @@
       for (let i = 1; i <= 12; i++) {
         const ySlot = 295 + (i - 1) * 17;
         unidades.push({
-          id: `BOD-${i.toString().padStart(2, '0')}`,
+          id: 'BOD-' + String(i).padStart(2, '0'),
           numero: i,
           tipo: 'Bodega',
           nivel: 'Subterráneo',
           superficieUtil: 2.5,
           precioUF: CONFIG_PRECIOS.bodega,
-          estado: 'disponible',
+          estado: i === 4 ? 'vendida' : 'disponible',
           polygonCoords: `540,${ySlot} 575,${ySlot} 575,${ySlot + 14} 540,${ySlot + 14}`
         });
       }
@@ -183,7 +192,7 @@
       for (let i = 13; i <= 18; i++) {
         const ySlot = 300 + (i - 13) * 19;
         unidades.push({
-          id: `BOD-${i.toString().padStart(2, '0')}`,
+          id: 'BOD-' + String(i).padStart(2, '0'),
           numero: i,
           tipo: 'Bodega',
           nivel: 'Subterráneo',
@@ -197,13 +206,13 @@
       for (let i = 19; i <= 24; i++) {
         const ySlot = 420 + (i - 19) * 16;
         unidades.push({
-          id: `BOD-${i.toString().padStart(2, '0')}`,
+          id: 'BOD-' + String(i).padStart(2, '0'),
           numero: i,
           tipo: 'Bodega',
           nivel: 'Subterráneo',
           superficieUtil: 2.5,
           precioUF: CONFIG_PRECIOS.bodega,
-          estado: 'disponible',
+          estado: i === 20 ? 'reservada' : 'disponible',
           polygonCoords: `590,${ySlot} 628,${ySlot} 628,${ySlot + 14} 590,${ySlot + 14}`
         });
       }
@@ -211,7 +220,7 @@
       for (let i = 25; i <= 34; i++) {
         const ySlot = 325 + (i - 25) * 17;
         unidades.push({
-          id: `BOD-${i.toString().padStart(2, '0')}`,
+          id: 'BOD-' + String(i).padStart(2, '0'),
           numero: i,
           tipo: 'Bodega',
           nivel: 'Subterráneo',
@@ -223,22 +232,22 @@
       }
 
       return unidades;
-    };
+    }
 
-    function App() {
-      const [inventario, setInventario] = useState(GENERAR_UNIDADES_BASE());
-      const [plantaActiva, setPlantaActiva] = useState('SUB');
-      const [unidadSeleccionadaId, setUnidadSeleccionadaId] = useState(null);
-      const [hoverUnidad, setHoverUnidad] = useState(null);
-      const [generandoPDF, setGenerandoPDF] = useState(false);
-      const [sincronizando, setSincronizando] = useState(false);
+    function MasterPlanApp() {
+      const [inventario, setInventario] = React.useState(generarInventarioInicial);
+      const [plantaActiva, setPlantaActiva] = React.useState('SUB');
+      const [unidadSeleccionadaId, setUnidadSeleccionadaId] = React.useState(null);
+      const [hoverUnidad, setHoverUnidad] = React.useState(null);
+      const [generandoPDF, setGenerandoPDF] = React.useState(false);
+      const [guardandoEnSheets, setGuardandoEnSheets] = React.useState(false);
 
-      const unidadSeleccionada = useMemo(() => 
+      const unidadSeleccionada = React.useMemo(() => 
         inventario.find(u => u.id === unidadSeleccionadaId) || null,
         [inventario, unidadSeleccionadaId]
       );
 
-      const [formLead, setFormLead] = useState({
+      const [formLead, setFormLead] = React.useState({
         nombre: '',
         rut: '',
         email: '',
@@ -247,10 +256,9 @@
         observaciones: ''
       });
 
-      // Leer inventario desde Google Sheets al iniciar
-      useEffect(() => {
-        if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL === "TU_URL_DE_APPS_SCRIPT_AQUI") return;
-        setSincronizando(true);
+      // Sincronización en segundo plano con Google Sheets
+      React.useEffect(() => {
+        if (!APPS_SCRIPT_URL) return;
         fetch(APPS_SCRIPT_URL)
           .then(res => res.json())
           .then(dataNube => {
@@ -268,12 +276,8 @@
                 return u;
               }));
             }
-            setSincronizando(false);
           })
-          .catch(err => {
-            console.error("Error sincronizando con Sheets:", err);
-            setSincronizando(false);
-          });
+          .catch(() => {});
       }, []);
 
       const exportarACSV = () => {
@@ -356,28 +360,33 @@
         }
       };
 
-      const sincronizarCambioConSheets = (unidadActualizada) => {
-        if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL === "TU_URL_DE_APPS_SCRIPT_AQUI") return;
+      const enviarASheets = (unidadPayload) => {
+        if (!APPS_SCRIPT_URL) return;
+        setGuardandoEnSheets(true);
         fetch(APPS_SCRIPT_URL, {
           method: 'POST',
           mode: 'no-cors',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(unidadActualizada)
-        }).catch(err => console.error("Error enviando a Sheets:", err));
+          body: JSON.stringify(unidadPayload)
+        }).then(() => {
+          setTimeout(() => setGuardandoEnSheets(false), 800);
+        }).catch(() => {
+          setGuardandoEnSheets(false);
+        });
       };
 
       const cambiarEstadoUnidad = (nuevoEstado) => {
         if (!unidadSeleccionadaId) return;
         const unidadMod = { ...unidadSeleccionada, estado: nuevoEstado, lead: formLead };
         setInventario(prev => prev.map(u => u.id === unidadSeleccionadaId ? unidadMod : u));
-        sincronizarCambioConSheets(unidadMod);
+        enviarASheets(unidadMod);
       };
 
       const actualizarPrecioUnidad = (nuevoPrecio) => {
         const valorNumerico = parseFloat(nuevoPrecio) || 0;
         const unidadMod = { ...unidadSeleccionada, precioUF: valorNumerico };
         setInventario(prev => prev.map(u => u.id === unidadSeleccionadaId ? unidadMod : u));
-        sincronizarCambioConSheets(unidadMod);
+        enviarASheets(unidadMod);
       };
 
       const actualizarPatioUnidad = (nuevoPatio) => {
@@ -396,7 +405,7 @@
         };
 
         setInventario(prev => prev.map(u => u.id === unidadSeleccionadaId ? unidadMod : u));
-        sincronizarCambioConSheets(unidadMod);
+        enviarASheets(unidadMod);
 
         if (unidadSeleccionada.tipo.includes('Duplex')) {
           setGenerandoPDF(true);
@@ -413,8 +422,7 @@
 
               window.html2pdf().set(opt).from(elemento).save().then(() => {
                 setGenerandoPDF(false);
-              }).catch((err) => {
-                console.error(err);
+              }).catch(() => {
                 setGenerandoPDF(false);
               });
             } else {
@@ -449,31 +457,33 @@
         }
       };
 
-      return e('div', { className: 'flex h-screen bg-slate-950 text-slate-100 font-sans overflow-hidden' },
-        e('div', { className: 'flex-1 flex flex-col border-r border-slate-800 min-w-0' },
-          e('header', { className: 'px-5 py-3.5 bg-slate-900 border-b border-slate-800 flex justify-between items-center gap-4' },
-            e('div', null,
-              e('div', { className: 'flex items-center gap-2' },
-                e('h1', { className: 'text-lg font-bold tracking-tight text-white' }, 'Master Plan Inmobiliario — Huechuraba'),
-                sincronizando && e('span', { className: 'text-[10px] bg-indigo-950 text-indigo-400 border border-indigo-800 px-2 py-0.5 rounded animate-pulse' }, 'Sincronizando...')
+      const el = React.createElement;
+
+      return el('div', { className: 'flex h-screen bg-slate-950 text-slate-100 font-sans overflow-hidden' },
+        el('div', { className: 'flex-1 flex flex-col border-r border-slate-800 min-w-0' },
+          el('header', { className: 'px-5 py-3.5 bg-slate-900 border-b border-slate-800 flex justify-between items-center gap-4' },
+            el('div', null,
+              el('div', { className: 'flex items-center gap-2.5' },
+                el('h1', { className: 'text-lg font-bold tracking-tight text-white' }, 'Master Plan Inmobiliario — Huechuraba'),
+                guardandoEnSheets && el('span', { className: 'text-[11px] bg-emerald-950 text-emerald-400 border border-emerald-800 px-2 py-0.5 rounded font-mono' }, '● Guardando en Google Sheets...')
               ),
-              e('p', { className: 'text-xs text-indigo-300 font-medium mt-0.5' }, '34 duplex, 34 bodegas y 51 estacionamientos')
+              el('p', { className: 'text-xs text-indigo-300 font-medium mt-0.5' }, '34 duplex, 34 bodegas y 51 estacionamientos')
             ),
-            e('div', { className: 'flex items-center gap-3' },
-              e('button', {
+            el('div', { className: 'flex items-center gap-3' },
+              el('button', {
                 onClick: exportarACSV,
                 className: 'px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-xs font-semibold shadow transition-all'
               }, 'Exportar a sheets'),
-              e('div', { className: 'flex items-center gap-1 bg-slate-950 p-1 rounded-lg border border-slate-800' },
-                e('button', {
+              el('div', { className: 'flex items-center gap-1 bg-slate-950 p-1 rounded-lg border border-slate-800' },
+                el('button', {
                   onClick: () => setPlantaActiva('SUB'),
                   className: `px-3 py-1.5 text-xs font-semibold rounded ${plantaActiva === 'SUB' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-white'}`
                 }, 'Subterráneo'),
-                e('button', {
+                el('button', {
                   onClick: () => setPlantaActiva('P1'),
                   className: `px-3 py-1.5 text-xs font-semibold rounded ${plantaActiva === 'P1' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-white'}`
                 }, 'Duplex Garden (1-17)'),
-                e('button', {
+                el('button', {
                   onClick: () => setPlantaActiva('P4'),
                   className: `px-3 py-1.5 text-xs font-semibold rounded ${plantaActiva === 'P4' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-white'}`
                 }, 'Duplex Rooftop (18-34)')
@@ -481,33 +491,33 @@
             )
           ),
 
-          e('div', { className: 'flex-1 relative bg-slate-950 overflow-auto p-3 flex items-center justify-center' },
-            e('div', { className: 'relative border border-slate-800 bg-slate-900/60 rounded-xl p-3 shadow-2xl w-full max-w-[1260px]' },
-              e('div', { className: 'absolute top-3 left-3 z-10 flex items-center gap-3.5 bg-slate-950/90 px-3 py-1.5 rounded border border-slate-800 text-xs' },
-                e('span', { className: 'flex items-center gap-1.5' }, e('span', { className: 'w-2.5 h-2.5 bg-emerald-500 rounded-sm' }), 'Disponible'),
-                e('span', { className: 'flex items-center gap-1.5' }, e('span', { className: 'w-2.5 h-2.5 bg-cyan-500 rounded-sm' }), 'Bodega'),
-                e('span', { className: 'flex items-center gap-1.5' }, e('span', { className: 'w-2.5 h-2.5 bg-amber-500 rounded-sm' }), 'Reservada'),
-                e('span', { className: 'flex items-center gap-1.5' }, e('span', { className: 'w-2.5 h-2.5 bg-rose-500 rounded-sm' }), 'Vendida'),
-                hoverUnidad && e('div', { className: 'ml-3 pl-3 border-l border-slate-800 text-indigo-300 font-mono text-xs' },
+          el('div', { className: 'flex-1 relative bg-slate-950 overflow-auto p-3 flex items-center justify-center' },
+            el('div', { className: 'relative border border-slate-800 bg-slate-900/60 rounded-xl p-3 shadow-2xl w-full max-w-[1260px]' },
+              el('div', { className: 'absolute top-3 left-3 z-10 flex items-center gap-3.5 bg-slate-950/90 px-3 py-1.5 rounded border border-slate-800 text-xs' },
+                el('span', { className: 'flex items-center gap-1.5' }, el('span', { className: 'w-2.5 h-2.5 bg-emerald-500 rounded-sm' }), 'Disponible'),
+                el('span', { className: 'flex items-center gap-1.5' }, el('span', { className: 'w-2.5 h-2.5 bg-cyan-500 rounded-sm' }), 'Bodega'),
+                el('span', { className: 'flex items-center gap-1.5' }, el('span', { className: 'w-2.5 h-2.5 bg-amber-500 rounded-sm' }), 'Reservada'),
+                el('span', { className: 'flex items-center gap-1.5' }, el('span', { className: 'w-2.5 h-2.5 bg-rose-500 rounded-sm' }), 'Vendida'),
+                hoverUnidad && el('div', { className: 'ml-3 pl-3 border-l border-slate-800 text-indigo-300 font-mono text-xs' },
                   `${hoverUnidad.id} (${hoverUnidad.nombreTipologia || hoverUnidad.tipo}): ${hoverUnidad.precioUF.toLocaleString('es-CL')} UF`
                 )
               ),
 
-              e('svg', { viewBox: '0 0 1260 530', className: 'w-full h-auto max-h-[560px] select-none' },
-                plantaActiva === 'SUB' ? e('g', null,
-                  e('polygon', { points: '40,35 1240,115 1230,285 40,285', fill: 'none', stroke: '#1e293b', strokeWidth: '1.5' }),
-                  e('rect', { x: '30', y: '285', width: '70', height: '230', fill: '#0f172a', stroke: '#1e293b', strokeWidth: '1' }),
-                  e('text', { x: '45', y: '415', fill: '#475569', fontSize: '11', transform: 'rotate(-90 45,415)' }, 'RAMPA DE ACCESO'),
-                  e('rect', { x: '530', y: '285', width: '220', height: '235', fill: '#0b1120', stroke: '#334155', strokeWidth: '1.5' }),
-                  e('text', { x: '640', y: '280', fill: '#64748b', fontSize: '11', textAnchor: 'middle', fontWeight: 'bold' }, 'S 01 - BODEGAS (34 UNIDADES)'),
-                  e('rect', { x: '635', y: '340', width: '45', height: '95', fill: '#020617', stroke: '#475569', strokeWidth: '1' }),
-                  e('text', { x: '657', y: '390', fill: '#64748b', fontSize: '10', textAnchor: 'middle' }, 'ESC / ASC'),
-                  e('line', { x1: '110', y1: '150', x2: '1220', y2: '150', stroke: '#334155', strokeWidth: '1', strokeDasharray: '6 4' }),
-                  e('text', { x: '240', y: '162', fill: '#475569', fontSize: '11' }, 'CALZADA CENTRAL DE CIRCULACIÓN Y MANIOBRAS')
-                ) : e('g', null,
-                  e('line', { x1: '60', y1: '380', x2: '1200', y2: '380', stroke: '#334155', strokeWidth: '1', strokeDasharray: '4 4' }),
-                  e('text', { x: '60', y: '395', fill: '#64748b', fontSize: '10', letterSpacing: '1' }, 'LÍNEA OFICIAL / ANTEJARDÍN 5.00m'),
-                  e('rect', { x: '50', y: '80', width: '1170', height: '270', fill: 'none', stroke: '#1e293b', strokeWidth: '1.5', rx: '4' })
+              el('svg', { viewBox: '0 0 1260 530', className: 'w-full h-auto max-h-[560px] select-none' },
+                plantaActiva === 'SUB' ? el('g', null,
+                  el('polygon', { points: '40,35 1240,115 1230,285 40,285', fill: 'none', stroke: '#1e293b', strokeWidth: '1.5' }),
+                  el('rect', { x: '30', y: '285', width: '70', height: '230', fill: '#0f172a', stroke: '#1e293b', strokeWidth: '1' }),
+                  el('text', { x: '45', y: '415', fill: '#475569', fontSize: '11', transform: 'rotate(-90 45,415)' }, 'RAMPA DE ACCESO'),
+                  el('rect', { x: '530', y: '285', width: '220', height: '235', fill: '#0b1120', stroke: '#334155', strokeWidth: '1.5' }),
+                  el('text', { x: '640', y: '280', fill: '#64748b', fontSize: '11', textAnchor: 'middle', fontWeight: 'bold' }, 'S 01 - BODEGAS (34 UNIDADES)'),
+                  el('rect', { x: '635', y: '340', width: '45', height: '95', fill: '#020617', stroke: '#475569', strokeWidth: '1' }),
+                  el('text', { x: '657', y: '390', fill: '#64748b', fontSize: '10', textAnchor: 'middle' }, 'ESC / ASC'),
+                  el('line', { x1: '110', y1: '150', x2: '1220', y2: '150', stroke: '#334155', strokeWidth: '1', strokeDasharray: '6 4' }),
+                  el('text', { x: '240', y: '162', fill: '#475569', fontSize: '11' }, 'CALZADA CENTRAL DE CIRCULACIÓN Y MANIOBRAS')
+                ) : el('g', null,
+                  el('line', { x1: '60', y1: '380', x2: '1200', y2: '380', stroke: '#334155', strokeWidth: '1', strokeDasharray: '4 4' }),
+                  el('text', { x: '60', y: '395', fill: '#64748b', fontSize: '10', letterSpacing: '1' }, 'LÍNEA OFICIAL / ANTEJARDÍN 5.00m'),
+                  el('rect', { x: '50', y: '80', width: '1170', height: '270', fill: 'none', stroke: '#1e293b', strokeWidth: '1.5', rx: '4' })
                 ),
 
                 itemsFiltrados.map(item => {
@@ -516,18 +526,18 @@
                   const xText = Number(coordsArr[0]);
                   const yText = Number(coordsArr[1]);
 
-                  return e('g', {
+                  return el('g', {
                     key: item.id,
                     className: 'cursor-pointer',
                     onClick: () => seleccionarUnidad(item),
                     onMouseEnter: () => setHoverUnidad(item),
                     onMouseLeave: () => setHoverUnidad(null)
                   },
-                    e('polygon', {
+                    el('polygon', {
                       points: item.polygonCoords,
                       className: `${getColorPorEstado(item.estado, item.tipo)} ${isSelected ? 'stroke-white stroke-[2.5px]' : 'stroke-1'} transition-all duration-150`
                     }),
-                    e('text', {
+                    el('text', {
                       x: item.tipo === 'Bodega' ? xText + 5 : item.tipo === 'Estacionamiento' ? xText + 6 : xText + 10,
                       y: item.tipo === 'Bodega' ? yText + 10 : item.tipo === 'Estacionamiento' ? yText + 48 : yText + 70,
                       fill: '#ffffff',
@@ -541,26 +551,26 @@
             )
           ),
 
-          e('footer', { className: 'p-3 bg-slate-900 border-t border-slate-800 grid grid-cols-4 gap-4 text-center' },
-            e('div', { className: 'bg-slate-950 p-2 rounded border border-slate-800' },
-              e('span', { className: 'text-xs text-slate-400' }, 'Total Departamentos'),
-              e('p', { className: 'text-lg font-bold text-white' }, '34 Duplex')
+          el('footer', { className: 'p-3 bg-slate-900 border-t border-slate-800 grid grid-cols-4 gap-4 text-center' },
+            el('div', { className: 'bg-slate-950 p-2 rounded border border-slate-800' },
+              el('span', { className: 'text-xs text-slate-400' }, 'Total Departamentos'),
+              el('p', { className: 'text-lg font-bold text-white' }, '34 Duplex')
             ),
-            e('div', { className: 'bg-slate-950 p-2 rounded border border-slate-800' },
-              e('span', { className: 'text-xs text-slate-400' }, 'Disponibles'),
-              e('p', { className: 'text-lg font-bold text-emerald-400' },
+            el('div', { className: 'bg-slate-950 p-2 rounded border border-slate-800' },
+              el('span', { className: 'text-xs text-slate-400' }, 'Disponibles'),
+              el('p', { className: 'text-lg font-bold text-emerald-400' },
                 inventario.filter(u => u.tipo.includes('Duplex') && u.estado === 'disponible').length
               )
             ),
-            e('div', { className: 'bg-slate-950 p-2 rounded border border-slate-800' },
-              e('span', { className: 'text-xs text-slate-400' }, 'Reservadas / Promesadas'),
-              e('p', { className: 'text-lg font-bold text-amber-400' },
+            el('div', { className: 'bg-slate-950 p-2 rounded border border-slate-800' },
+              el('span', { className: 'text-xs text-slate-400' }, 'Reservadas / Promesadas'),
+              el('p', { className: 'text-lg font-bold text-amber-400' },
                 inventario.filter(u => u.tipo.includes('Duplex') && u.estado === 'reservada').length
               )
             ),
-            e('div', { className: 'bg-slate-950 p-2 rounded border border-slate-800' },
-              e('span', { className: 'text-xs text-slate-400' }, 'Vendidas'),
-              e('p', { className: 'text-lg font-bold text-rose-400' },
+            el('div', { className: 'bg-slate-950 p-2 rounded border border-slate-800' },
+              el('span', { className: 'text-xs text-slate-400' }, 'Vendidas'),
+              el('p', { className: 'text-lg font-bold text-rose-400' },
                 inventario.filter(u => u.tipo.includes('Duplex') && u.estado === 'vendida').length
               )
             )
@@ -568,19 +578,19 @@
         ),
 
         // Panel Lateral CRM
-        e('div', { className: 'w-[500px] bg-slate-900 flex flex-col overflow-y-auto border-l border-slate-800 flex-shrink-0' },
-          unidadSeleccionada ? e('div', { className: 'p-7 space-y-6' },
-            e('div', { className: 'border-b border-slate-800 pb-5' },
-              e('div', { className: 'flex justify-between items-start gap-4' },
-                e('div', null,
-                  e('span', { className: 'text-xs font-semibold px-2.5 py-1 rounded bg-indigo-950 text-indigo-300 border border-indigo-800' },
+        el('div', { className: 'w-[500px] bg-slate-900 flex flex-col overflow-y-auto border-l border-slate-800 flex-shrink-0' },
+          unidadSeleccionada ? el('div', { className: 'p-7 space-y-6' },
+            el('div', { className: 'border-b border-slate-800 pb-5' },
+              el('div', { className: 'flex justify-between items-start gap-4' },
+                el('div', null,
+                  el('span', { className: 'text-xs font-semibold px-2.5 py-1 rounded bg-indigo-950 text-indigo-300 border border-indigo-800' },
                     unidadSeleccionada.nombreTipologia || unidadSeleccionada.tipo
                   ),
-                  e('h2', { className: 'text-3xl font-black text-white mt-1.5' }, unidadSeleccionada.id)
+                  el('h2', { className: 'text-3xl font-black text-white mt-1.5' }, unidadSeleccionada.id)
                 ),
-                e('div', { className: 'text-right' },
-                  e('span', { className: 'text-xs text-slate-400 block mb-1' }, 'Precio de Lista (UF)'),
-                  e('input', {
+                el('div', { className: 'text-right' },
+                  el('span', { className: 'text-xs text-slate-400 block mb-1' }, 'Precio de Lista (UF)'),
+                  el('input', {
                     type: 'number',
                     value: unidadSeleccionada.precioUF,
                     onChange: (ev) => actualizarPrecioUnidad(ev.target.value),
@@ -589,18 +599,18 @@
                 )
               ),
 
-              e('div', { className: 'mt-4 bg-slate-950 p-3.5 rounded-lg border border-slate-800 grid grid-cols-2 gap-3 text-xs' },
-                unidadSeleccionada.superficieUtil !== null ? e('div', null,
-                  e('span', { className: 'text-slate-400 block' }, 'Superficie Útil:'),
-                  e('p', { className: 'text-sm font-bold text-white mt-0.5' }, `${unidadSeleccionada.superficieUtil} m²`)
-                ) : e('div', null,
-                  e('span', { className: 'text-slate-400 block' }, 'Asignación:'),
-                  e('p', { className: 'text-sm font-bold text-indigo-300 mt-0.5' }, 'Cupo Exclusivo')
+              el('div', { className: 'mt-4 bg-slate-950 p-3.5 rounded-lg border border-slate-800 grid grid-cols-2 gap-3 text-xs' },
+                unidadSeleccionada.superficieUtil !== null ? el('div', null,
+                  el('span', { className: 'text-slate-400 block' }, 'Superficie Útil:'),
+                  el('p', { className: 'text-sm font-bold text-white mt-0.5' }, `${unidadSeleccionada.superficieUtil} m²`)
+                ) : el('div', null,
+                  el('span', { className: 'text-slate-400 block' }, 'Asignación:'),
+                  el('p', { className: 'text-sm font-bold text-indigo-300 mt-0.5' }, 'Cupo Exclusivo')
                 ),
 
-                unidadSeleccionada.tipo === 'Duplex Garden' && e('div', null,
-                  e('span', { className: 'text-slate-400 block mb-1' }, 'Superficie Patio (m²):'),
-                  e('input', {
+                unidadSeleccionada.tipo === 'Duplex Garden' && el('div', null,
+                  el('span', { className: 'text-slate-400 block mb-1' }, 'Superficie Patio (m²):'),
+                  el('input', {
                     type: 'number',
                     step: '0.5',
                     value: unidadSeleccionada.metrajeExterior,
@@ -609,29 +619,29 @@
                   })
                 ),
 
-                unidadSeleccionada.tipo === 'Duplex Rooftop' && e('div', null,
-                  e('span', { className: 'text-slate-400 block' }, 'Superficie Azotea:'),
-                  e('p', { className: 'text-sm font-bold text-indigo-400 mt-0.5' }, '16.0 m² (Fijo)')
+                unidadSeleccionada.tipo === 'Duplex Rooftop' && el('div', null,
+                  el('span', { className: 'text-slate-400 block' }, 'Superficie Azotea:'),
+                  el('p', { className: 'text-sm font-bold text-indigo-400 mt-0.5' }, '16.0 m² (Fijo)')
                 ),
 
-                unidadSeleccionada.tipo === 'Bodega' && e('div', null,
-                  e('span', { className: 'text-slate-400 block' }, 'Capacidad:'),
-                  e('p', { className: 'text-sm font-bold text-cyan-400 mt-0.5' }, '2.5 m² Subterránea')
+                unidadSeleccionada.tipo === 'Bodega' && el('div', null,
+                  el('span', { className: 'text-slate-400 block' }, 'Capacidad:'),
+                  el('p', { className: 'text-sm font-bold text-cyan-400 mt-0.5' }, '2.5 m² Subterránea')
                 )
               ),
 
-              unidadSeleccionada.imgTipologia && e('div', { className: 'mt-4 bg-slate-950 p-2.5 rounded-lg border border-slate-800' },
-                e('span', { className: 'text-[11px] font-semibold text-slate-400 block mb-1.5 uppercase' }, 'Planta Arquitectónica Asignada'),
-                e('img', {
+              unidadSeleccionada.imgTipologia && el('div', { className: 'mt-4 bg-slate-950 p-2.5 rounded-lg border border-slate-800' },
+                el('span', { className: 'text-[11px] font-semibold text-slate-400 block mb-1.5 uppercase' }, 'Planta Arquitectónica Asignada'),
+                el('img', {
                   src: unidadSeleccionada.imgTipologia,
                   alt: unidadSeleccionada.nombreTipologia,
                   className: 'w-full h-44 object-contain rounded bg-white border border-slate-800'
                 })
               ),
 
-              e('div', { className: 'mt-4 grid grid-cols-4 gap-2' },
+              el('div', { className: 'mt-4 grid grid-cols-4 gap-2' },
                 ['disponible', 'reservada', 'vendida', 'bloqueada'].map(st => 
-                  e('button', {
+                  el('button', {
                     key: st,
                     onClick: () => cambiarEstadoUnidad(st),
                     className: `capitalize text-xs py-2 rounded font-semibold transition-all ${
@@ -644,11 +654,11 @@
               )
             ),
 
-            e('form', { onSubmit: guardarLeadYDescargarPDF, className: 'space-y-3.5' },
-              e('h3', { className: 'text-xs font-bold text-slate-200 uppercase tracking-wider' }, 'Ficha de Prospecto Asignado'),
-              e('div', null,
-                e('label', { className: 'text-xs text-slate-400 block mb-1' }, 'Nombre Completo'),
-                e('input', {
+            el('form', { onSubmit: guardarLeadYDescargarPDF, className: 'space-y-3.5' },
+              el('h3', { className: 'text-xs font-bold text-slate-200 uppercase tracking-wider' }, 'Ficha de Prospecto Asignado'),
+              el('div', null,
+                el('label', { className: 'text-xs text-slate-400 block mb-1' }, 'Nombre Completo'),
+                el('input', {
                   type: 'text',
                   required: true,
                   value: formLead.nombre,
@@ -657,10 +667,10 @@
                   placeholder: 'Ej. Roberto Morales'
                 })
               ),
-              e('div', { className: 'grid grid-cols-2 gap-3' },
-                e('div', null,
-                  e('label', { className: 'text-xs text-slate-400 block mb-1' }, 'RUT'),
-                  e('input', {
+              el('div', { className: 'grid grid-cols-2 gap-3' },
+                el('div', null,
+                  el('label', { className: 'text-xs text-slate-400 block mb-1' }, 'RUT'),
+                  el('input', {
                     type: 'text',
                     value: formLead.rut,
                     onChange: ev => setFormLead({ ...formLead, rut: ev.target.value }),
@@ -668,9 +678,9 @@
                     placeholder: '12.345.678-9'
                   })
                 ),
-                e('div', null,
-                  e('label', { className: 'text-xs text-slate-400 block mb-1' }, 'Teléfono'),
-                  e('input', {
+                el('div', null,
+                  el('label', { className: 'text-xs text-slate-400 block mb-1' }, 'Teléfono'),
+                  el('input', {
                     type: 'text',
                     value: formLead.telefono,
                     onChange: ev => setFormLead({ ...formLead, telefono: ev.target.value }),
@@ -679,9 +689,9 @@
                   })
                 )
               ),
-              e('div', null,
-                e('label', { className: 'text-xs text-slate-400 block mb-1' }, 'Email'),
-                e('input', {
+              el('div', null,
+                el('label', { className: 'text-xs text-slate-400 block mb-1' }, 'Email'),
+                el('input', {
                   type: 'email',
                   value: formLead.email,
                   onChange: ev => setFormLead({ ...formLead, email: ev.target.value }),
@@ -689,22 +699,22 @@
                   placeholder: 'contacto@inversionista.cl'
                 })
               ),
-              e('div', null,
-                e('label', { className: 'text-xs text-slate-400 block mb-1' }, 'Etapa Comercial'),
-                e('select', {
+              el('div', null,
+                el('label', { className: 'text-xs text-slate-400 block mb-1' }, 'Etapa Comercial'),
+                el('select', {
                   value: formLead.etapa,
                   onChange: ev => setFormLead({ ...formLead, etapa: ev.target.value }),
                   className: 'w-full bg-slate-950 border border-slate-800 rounded px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500'
                 },
-                  e('option', { value: 'Contacto Inicial' }, 'Contacto Inicial'),
-                  e('option', { value: 'Cotización' }, 'Cotización Emitida'),
-                  e('option', { value: 'Evaluación Bancaria' }, 'Evaluación Bancaria'),
-                  e('option', { value: 'Promesa Firmada' }, 'Promesa Firmada')
+                  el('option', { value: 'Contacto Inicial' }, 'Contacto Inicial'),
+                  el('option', { value: 'Cotización' }, 'Cotización Emitida'),
+                  el('option', { value: 'Evaluación Bancaria' }, 'Evaluación Bancaria'),
+                  el('option', { value: 'Promesa Firmada' }, 'Promesa Firmada')
                 )
               ),
-              e('div', null,
-                e('label', { className: 'text-xs text-slate-400 block mb-1' }, 'Observaciones Comerciales'),
-                e('textarea', {
+              el('div', null,
+                el('label', { className: 'text-xs text-slate-400 block mb-1' }, 'Observaciones Comerciales'),
+                el('textarea', {
                   rows: 3,
                   value: formLead.observaciones,
                   onChange: ev => setFormLead({ ...formLead, observaciones: ev.target.value }),
@@ -712,69 +722,69 @@
                   placeholder: 'Detalle de estacionamiento, notas...'
                 })
               ),
-              e('button', {
+              el('button', {
                 type: 'submit',
                 disabled: generandoPDF,
                 className: 'w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-2.5 rounded text-xs transition-colors shadow disabled:opacity-50'
               }, generandoPDF ? 'Generando Ficha...' : 'Guardar Ficha y Descargar PDF')
             )
-          ) : e('div', { className: 'flex-1 flex flex-col items-center justify-center p-8 text-center text-slate-500' },
-            e('p', { className: 'text-base font-semibold text-slate-300' }, 'Sin Selección'),
-            e('p', { className: 'text-xs mt-1.5 leading-relaxed text-slate-400' },
+          ) : el('div', { className: 'flex-1 flex flex-col items-center justify-center p-8 text-center text-slate-500' },
+            el('p', { className: 'text-base font-semibold text-slate-300' }, 'Sin Selección'),
+            el('p', { className: 'text-xs mt-1.5 leading-relaxed text-slate-400' },
               'Haz clic sobre un departamento, estacionamiento o bodega en el plano para ver especificaciones y gestionar su ficha comercial.'
             )
           )
         ),
 
         // Plantilla Imprimible A4
-        unidadSeleccionada && e('div', { style: { position: 'fixed', left: '-9999px', top: '0', zIndex: -100 } },
-          e('div', { id: 'plantilla-ficha-pdf', style: { width: '190mm', padding: '10mm', fontFamily: 'Arial, sans-serif', color: '#111827', backgroundColor: '#ffffff' } },
-            e('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #4f46e5', paddingBottom: '8px' } },
-              e('div', null,
-                e('h1', { style: { fontSize: '18px', fontWeight: 'bold', margin: 0, color: '#111827' } }, 'HORIZONTE NORTE — HUECHURABA'),
-                e('p', { style: { fontSize: '10px', color: '#6b7280', margin: '3px 0 0 0' } }, 'Ficha Técnica de Cotización Comercial')
+        unidadSeleccionada && el('div', { style: { position: 'fixed', left: '-9999px', top: '0', zIndex: -100 } },
+          el('div', { id: 'plantilla-ficha-pdf', style: { width: '190mm', padding: '10mm', fontFamily: 'Arial, sans-serif', color: '#111827', backgroundColor: '#ffffff' } },
+            el('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #4f46e5', paddingBottom: '8px' } },
+              el('div', null,
+                el('h1', { style: { fontSize: '18px', fontWeight: 'bold', margin: 0, color: '#111827' } }, 'HORIZONTE NORTE — HUECHURABA'),
+                el('p', { style: { fontSize: '10px', color: '#6b7280', margin: '3px 0 0 0' } }, 'Ficha Técnica de Cotización Comercial')
               ),
-              e('div', { style: { textAlign: 'right' } },
-                e('span', { style: { fontSize: '16px', fontWeight: 'bold', color: '#4f46e5' } }, unidadSeleccionada.id),
-                e('p', { style: { fontSize: '9px', color: '#6b7280', margin: '2px 0 0 0' } }, `Fecha: ${new Date().toLocaleDateString('es-CL')}`)
+              el('div', { style: { textAlign: 'right' } },
+                el('span', { style: { fontSize: '16px', fontWeight: 'bold', color: '#4f46e5' } }, unidadSeleccionada.id),
+                el('p', { style: { fontSize: '9px', color: '#6b7280', margin: '2px 0 0 0' } }, `Fecha: ${new Date().toLocaleDateString('es-CL')}`)
               )
             ),
 
-            e('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginTop: '12px' } },
-              e('div', { style: { backgroundColor: '#f9fafb', padding: '8px 10px', borderRadius: '4px', border: '1px solid #e5e7eb' } },
-                e('h3', { style: { fontSize: '10px', fontWeight: 'bold', margin: '0 0 4px 0', color: '#4f46e5', textTransform: 'uppercase' } }, 'Datos del Prospecto'),
-                e('p', { style: { fontSize: '10px', margin: '2px 0' } }, e('strong', null, 'Nombre: '), formLead.nombre || 'No registrado'),
-                e('p', { style: { fontSize: '10px', margin: '2px 0' } }, e('strong', null, 'RUT: '), formLead.rut || 'No registrado'),
-                e('p', { style: { fontSize: '10px', margin: '2px 0' } }, e('strong', null, 'Teléfono: '), formLead.telefono || 'No registrado'),
-                e('p', { style: { fontSize: '10px', margin: '2px 0' } }, e('strong', null, 'Email: '), formLead.email || 'No registrado')
+            el('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginTop: '12px' } },
+              el('div', { style: { backgroundColor: '#f9fafb', padding: '8px 10px', borderRadius: '4px', border: '1px solid #e5e7eb' } },
+                el('h3', { style: { fontSize: '10px', fontWeight: 'bold', margin: '0 0 4px 0', color: '#4f46e5', textTransform: 'uppercase' } }, 'Datos del Prospecto'),
+                el('p', { style: { fontSize: '10px', margin: '2px 0' } }, el('strong', null, 'Nombre: '), formLead.nombre || 'No registrado'),
+                el('p', { style: { fontSize: '10px', margin: '2px 0' } }, el('strong', null, 'RUT: '), formLead.rut || 'No registrado'),
+                el('p', { style: { fontSize: '10px', margin: '2px 0' } }, el('strong', null, 'Teléfono: '), formLead.telefono || 'No registrado'),
+                el('p', { style: { fontSize: '10px', margin: '2px 0' } }, el('strong', null, 'Email: '), formLead.email || 'No registrado')
               ),
-              e('div', { style: { backgroundColor: '#f9fafb', padding: '8px 10px', borderRadius: '4px', border: '1px solid #e5e7eb' } },
-                e('h3', { style: { fontSize: '10px', fontWeight: 'bold', margin: '0 0 4px 0', color: '#4f46e5', textTransform: 'uppercase' } }, 'Condiciones Comerciales'),
-                e('p', { style: { fontSize: '10px', margin: '2px 0' } }, e('strong', null, 'Tipología: '), unidadSeleccionada.nombreTipologia || unidadSeleccionada.tipo),
-                e('p', { style: { fontSize: '10px', margin: '2px 0' } }, e('strong', null, 'Superficie Útil: '), `${unidadSeleccionada.superficieUtil} m²`),
-                unidadSeleccionada.metrajeExterior !== undefined && e('p', { style: { fontSize: '10px', margin: '2px 0' } },
-                  e('strong', null, unidadSeleccionada.tipo === 'Duplex Garden' ? 'Patio: ' : 'Azotea: '),
+              el('div', { style: { backgroundColor: '#f9fafb', padding: '8px 10px', borderRadius: '4px', border: '1px solid #e5e7eb' } },
+                el('h3', { style: { fontSize: '10px', fontWeight: 'bold', margin: '0 0 4px 0', color: '#4f46e5', textTransform: 'uppercase' } }, 'Condiciones Comerciales'),
+                el('p', { style: { fontSize: '10px', margin: '2px 0' } }, el('strong', null, 'Tipología: '), unidadSeleccionada.nombreTipologia || unidadSeleccionada.tipo),
+                el('p', { style: { fontSize: '10px', margin: '2px 0' } }, el('strong', null, 'Superficie Útil: '), `${unidadSeleccionada.superficieUtil} m²`),
+                unidadSeleccionada.metrajeExterior !== undefined && el('p', { style: { fontSize: '10px', margin: '2px 0' } },
+                  el('strong', null, unidadSeleccionada.tipo === 'Duplex Garden' ? 'Patio: ' : 'Azotea: '),
                   `${unidadSeleccionada.metrajeExterior} m²`
                 ),
-                e('p', { style: { fontSize: '11px', margin: '4px 0 0 0', color: '#4f46e5' } }, e('strong', null, 'Precio Lista: '), `${unidadSeleccionada.precioUF.toLocaleString('es-CL')} UF`)
+                el('p', { style: { fontSize: '11px', margin: '4px 0 0 0', color: '#4f46e5' } }, el('strong', null, 'Precio Lista: '), `${unidadSeleccionada.precioUF.toLocaleString('es-CL')} UF`)
               )
             ),
 
-            e('div', { style: { marginTop: '14px', textAlign: 'center' } },
-              e('h3', { style: { fontSize: '10px', fontWeight: 'bold', margin: '0 0 6px 0', color: '#374151', textAlign: 'left', textTransform: 'uppercase' } },
+            el('div', { style: { marginTop: '14px', textAlign: 'center' } },
+              el('h3', { style: { fontSize: '10px', fontWeight: 'bold', margin: '0 0 6px 0', color: '#374151', textAlign: 'left', textTransform: 'uppercase' } },
                 `Distribución Arquitectónica (${unidadSeleccionada.nombreTipologia})`
               ),
-              unidadSeleccionada.imgTipologia ? e('img', {
+              unidadSeleccionada.imgTipologia ? el('img', {
                 src: unidadSeleccionada.imgTipologia,
                 alt: 'Tipología Arquitectónica',
                 crossOrigin: 'anonymous',
                 style: { width: '100%', maxHeight: '140mm', objectFit: 'contain', border: '1px solid #e5e7eb', borderRadius: '4px', display: 'block', margin: '0 auto' }
-              }) : e('div', { style: { padding: '30px', border: '1px dashed #d1d5db', borderRadius: '4px', color: '#9ca3af', fontSize: '11px' } },
+              }) : el('div', { style: { padding: '30px', border: '1px dashed #d1d5db', borderRadius: '4px', color: '#9ca3af', fontSize: '11px' } },
                 'Lámina técnica en proceso de asignación.'
               )
             ),
 
-            e('div', { style: { marginTop: '10px', borderTop: '1px solid #e5e7eb', paddingTop: '4px', fontSize: '7.5px', color: '#9ca3af', textAlign: 'justify' } },
+            el('div', { style: { marginTop: '10px', borderTop: '1px solid #e5e7eb', paddingTop: '4px', fontSize: '7.5px', color: '#9ca3af', textAlign: 'justify' } },
               'Las imágenes contenidas en este material son ilustrativas y las ambientaciones son referenciales. Superficies y medidas aproximadas según Ley 19.472. Las características y precios del proyecto pueden sufrir variaciones durante su desarrollo comercial sin previo aviso.'
             )
           )
@@ -782,8 +792,13 @@
       );
     }
 
-    const root = ReactDOM.createRoot(document.getElementById('root'));
-    root.render(e(App));
+    window.addEventListener('DOMContentLoaded', function() {
+      const contenedor = document.getElementById('root');
+      if (contenedor && window.ReactDOM) {
+        const root = ReactDOM.createRoot(contenedor);
+        root.render(React.createElement(MasterPlanApp));
+      }
+    });
   </script>
 </body>
 </html>
