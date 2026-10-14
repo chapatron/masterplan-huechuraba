@@ -399,7 +399,6 @@
         }
       };
 
-      // Envío robusto mediante FormData para evitar problemas de CORS
       const enviarASheetsYCorreo = (payload) => {
         if (!APPS_SCRIPT_URL) return;
         setGuardandoEnSheets(true);
@@ -446,6 +445,7 @@
         setInventario(prev => prev.map(u => u.id === unidadSeleccionadaId ? { ...u, metrajeExterior: valorNumerico } : u));
       };
 
+      // Se consolida en un único envío con PDF adjunto para evitar correos duplicados
       const guardarLeadYDescargarPDF = (ev) => {
         ev.preventDefault();
         if (!unidadSeleccionadaId || !unidadSeleccionada) return;
@@ -460,6 +460,7 @@
           bodegaId: unidadSeleccionada.bodegaAsignadaId
         };
 
+        // Actualiza el estado local en pantalla sin hacer envíos intermedios
         setInventario(prev => prev.map(u => u.id === unidadSeleccionadaId ? unidadMod : u));
 
         if (unidadSeleccionada.tipo.includes('Duplex')) {
@@ -475,6 +476,7 @@
                 jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
               };
 
+              // Genera el Base64, lo adjunta y realiza UN SOLO envío
               window.html2pdf().set(opt).from(elemento).outputPdf('datauristring').then((pdfDataUri) => {
                 const base64Data = pdfDataUri.split(',')[1];
                 unidadMod.pdfBase64 = base64Data;
@@ -869,7 +871,7 @@
                 alt: 'Tipología Arquitectónica',
                 style: { width: '100%', maxHeight: '135mm', objectFit: 'contain', border: '1px solid #e5e7eb', borderRadius: '4px', display: 'block', margin: '0 auto' }
               }) : el('div', { style: { padding: '30px', border: '1px dashed #d1d5db', borderRadius: '4px', color: '#9ca3af', fontSize: '11px' } },
-                'Lámina técnica en proceso de asignación.'
+                'Cargando lámina técnica arquitectónica...'
               )
             ),
 
