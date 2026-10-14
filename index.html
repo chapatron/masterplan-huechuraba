@@ -33,7 +33,6 @@
       bodega: PRECIO_BODEGA
     };
 
-    // Mapeo oficial de asignaciones departamento -> bodega -> estacionamiento
     const ASIGNACIONES_MASTER = {
       1:  { est: 29, bod: 1 },
       2:  { est: 31, bod: 2 },
@@ -112,7 +111,6 @@
     function generarInventarioInicial() {
       const unidades = [];
 
-      // 17 Duplex Garden (U-01 a U-17)
       for (let i = 1; i <= 17; i++) {
         const xBase = 80 + (i - 1) * 66;
         const supUtil = i === 17 ? 68.0 : 65.0;
@@ -135,7 +133,6 @@
         });
       }
 
-      // 17 Duplex Rooftop (U-18 a U-34)
       for (let i = 18; i <= 34; i++) {
         const idx = i - 18;
         const xBase = 80 + idx * 66;
@@ -159,7 +156,6 @@
         });
       }
 
-      // 51 Estacionamientos
       const filaSuperiorNums = [25,24,23,22,21,20,19,18,17,16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1];
       filaSuperiorNums.forEach((num, index) => {
         const xSlot = 50 + index * 47;
@@ -208,7 +204,6 @@
         });
       }
 
-      // 34 Bodegas
       for (let i = 1; i <= 12; i++) {
         const ySlot = 295 + (i - 1) * 17;
         unidades.push({
@@ -275,6 +270,7 @@
       const [hoverUnidad, setHoverUnidad] = React.useState(null);
       const [generandoPDF, setGenerandoPDF] = React.useState(false);
       const [guardandoEnSheets, setGuardandoEnSheets] = React.useState(false);
+      const [dataUrlImagen, setDataUrlImagen] = React.useState(null);
 
       const unidadSeleccionada = React.useMemo(() => 
         inventario.find(u => u.id === unidadSeleccionadaId) || null,
@@ -290,19 +286,32 @@
         observaciones: ''
       });
 
-      // Cálculo del Total Comercial (Unidad + Estacionamiento Asignado + Bodega Asignada)
       const totalesComerciales = React.useMemo(() => {
         if (!unidadSeleccionada) return { base: 0, est: 0, bod: 0, total: 0 };
         const base = unidadSeleccionada.precioUF || 0;
         const est = unidadSeleccionada.estacionamientoAsignadoId ? PRECIO_ESTACIONAMIENTO : 0;
         const bod = unidadSeleccionada.bodegaAsignadaId ? PRECIO_BODEGA : 0;
-        return {
-          base,
-          est,
-          bod,
-          total: base + est + bod
-        };
+        return { base, est, bod, total: base + est + bod };
       }, [unidadSeleccionada]);
+
+      // Convierte la imagen a DataURL en memoria al seleccionar una unidad
+      React.useEffect(() => {
+        if (unidadSeleccionada && unidadSeleccionada.imgTipologia) {
+          const img = new Image();
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            canvas.width = img.naturalWidth;
+            canvas.height = img.naturalHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0);
+            setDataUrlImagen(canvas.toDataURL('image/png'));
+          };
+          img.onerror = () => setDataUrlImagen(null);
+          img.src = unidadSeleccionada.imgTipologia;
+        } else {
+          setDataUrlImagen(null);
+        }
+      }, [unidadSeleccionadaId]);
 
       React.useEffect(() => {
         if (!APPS_SCRIPT_URL) return;
@@ -343,44 +352,23 @@
         });
 
         const encabezados = [
-          'ID Unidad',
-          'Tipo',
-          'Tipologia Arquitectonica',
-          'Nivel',
-          'Superficie Util (m2)',
-          'Superficie Exterior Patio/Azotea (m2)',
-          'Estacionamiento Asignado',
-          'Bodega Asignada',
-          'Precio Depto (UF)',
-          'Total Inversion Paquete (UF)',
-          'Estado',
-          'Nombre Cliente',
-          'RUT',
-          'Email',
-          'Telefono',
-          'Etapa Comercial',
-          'Observaciones'
+          'ID Unidad', 'Tipo', 'Tipologia Arquitectonica', 'Nivel',
+          'Superficie Util (m2)', 'Superficie Exterior Patio/Azotea (m2)',
+          'Estacionamiento Asignado', 'Bodega Asignada', 'Precio Depto (UF)',
+          'Total Inversion Paquete (UF)', 'Estado', 'Nombre Cliente', 'RUT',
+          'Email', 'Telefono', 'Etapa Comercial', 'Observaciones'
         ];
 
         const filas = inventarioOrdenado.map(u => {
           const totalInv = u.tipo.includes('Duplex') ? (u.precioUF + PRECIO_ESTACIONAMIENTO + PRECIO_BODEGA) : u.precioUF;
           return [
-            `"${u.id}"`,
-            `"${u.tipo}"`,
-            `"${u.nombreTipologia || ''}"`,
-            `"${u.nivel}"`,
+            `"${u.id}"`, `"${u.tipo}"`, `"${u.nombreTipologia || ''}"`, `"${u.nivel}"`,
             u.superficieUtil !== null ? u.superficieUtil : '""',
             u.metrajeExterior !== undefined ? u.metrajeExterior : '""',
-            `"${u.estacionamientoAsignadoId || ''}"`,
-            `"${u.bodegaAsignadaId || ''}"`,
-            u.precioUF,
-            totalInv,
-            `"${u.estado}"`,
-            `"${u.lead ? u.lead.nombre : ''}"`,
-            `"${u.lead ? u.lead.rut : ''}"`,
-            `"${u.lead ? u.lead.email : ''}"`,
-            `"${u.lead ? u.lead.telefono : ''}"`,
-            `"${u.lead ? u.lead.etapa : ''}"`,
+            `"${u.estacionamientoAsignadoId || ''}"`, `"${u.bodegaAsignadaId || ''}"`,
+            u.precioUF, totalInv, `"${u.estado}"`, `"${u.lead ? u.lead.nombre : ''}"`,
+            `"${u.lead ? u.lead.rut : ''}"`, `"${u.lead ? u.lead.email : ''}"`,
+            `"${u.lead ? u.lead.telefono : ''}"`, `"${u.lead ? u.lead.etapa : ''}"`,
             `"${((u.lead && u.lead.observaciones) || '').replace(/"/g, '""')}"`
           ];
         });
@@ -406,12 +394,8 @@
           setFormLead(u.lead);
         } else {
           setFormLead({
-            nombre: '',
-            rut: '',
-            email: '',
-            telefono: '',
-            etapa: 'Contacto Inicial',
-            observaciones: ''
+            nombre: '', rut: '', email: '', telefono: '',
+            etapa: 'Contacto Inicial', observaciones: ''
           });
         }
       };
@@ -422,7 +406,7 @@
         fetch(APPS_SCRIPT_URL, {
           method: 'POST',
           mode: 'no-cors',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'text/plain' },
           body: JSON.stringify(payload)
         }).then(() => {
           setTimeout(() => setGuardandoEnSheets(false), 900);
@@ -459,7 +443,6 @@
         setInventario(prev => prev.map(u => u.id === unidadSeleccionadaId ? { ...u, metrajeExterior: valorNumerico } : u));
       };
 
-      // Dispara la descarga local del PDF y el envío por correo automático
       const guardarLeadYDescargarPDF = (ev) => {
         ev.preventDefault();
         if (!unidadSeleccionadaId || !unidadSeleccionada) return;
@@ -485,17 +468,16 @@
                 margin: 6,
                 filename: `Cotizacion_${unidadSeleccionada.id}_${(formLead.nombre || 'Cliente').replace(/\s+/g, '_')}.pdf`,
                 image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: 2, useCORS: true },
+                html2canvas: { scale: 2, useCORS: true, allowTaint: true },
                 jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
               };
 
-              // Genera base64 para despachar por correo y guarda localmente
+              // Genera DataURI para enviar a Gmail y descarga directa
               window.html2pdf().set(opt).from(elemento).outputPdf('datauristring').then((pdfDataUri) => {
                 const base64Data = pdfDataUri.split(',')[1];
                 unidadMod.pdfBase64 = base64Data;
                 enviarASheetsYCorreo(unidadMod);
 
-                // Descarga directa al navegador
                 window.html2pdf().set(opt).from(elemento).save().then(() => {
                   setGenerandoPDF(false);
                 });
@@ -507,7 +489,7 @@
               setGenerandoPDF(false);
               enviarASheetsYCorreo(unidadMod);
             }
-          }, 350);
+          }, 400);
         } else {
           enviarASheetsYCorreo(unidadMod);
         }
@@ -680,7 +662,6 @@
                 )
               ),
 
-              // Tarjeta Resumen de Paquete Comercial Asignado
               unidadSeleccionada.tipo.includes('Duplex') && el('div', { className: 'mt-3 bg-slate-950 p-3 rounded-lg border border-indigo-900/60 text-xs space-y-1.5' },
                 el('div', { className: 'flex justify-between text-slate-300' },
                   el('span', null, 'Departamento:'),
@@ -821,7 +802,7 @@
                   value: formLead.observaciones,
                   onChange: ev => setFormLead({ ...formLead, observaciones: ev.target.value }),
                   className: 'w-full bg-slate-950 border border-slate-800 rounded px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500',
-                  placeholder: 'Detalle de compras, segundo estacionamiento, etc...'
+                  placeholder: 'Detalle de compras, segundo estacionamiento...'
                 })
               ),
               el('button', {
@@ -838,7 +819,7 @@
           )
         ),
 
-        // Plantilla Imprimible A4 Oculta
+        // Plantilla Imprimible A4 Oculta con inyección DataURL
         unidadSeleccionada && el('div', { style: { position: 'fixed', left: '-9999px', top: '0', zIndex: -100 } },
           el('div', { id: 'plantilla-ficha-pdf', style: { width: '190mm', padding: '10mm', fontFamily: 'Arial, sans-serif', color: '#111827', backgroundColor: '#ffffff' } },
             el('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #4f46e5', paddingBottom: '8px' } },
@@ -881,13 +862,12 @@
               el('h3', { style: { fontSize: '10px', fontWeight: 'bold', margin: '0 0 6px 0', color: '#374151', textAlign: 'left', textTransform: 'uppercase' } },
                 `Distribución Arquitectónica (${unidadSeleccionada.nombreTipologia})`
               ),
-              unidadSeleccionada.imgTipologia ? el('img', {
-                src: unidadSeleccionada.imgTipologia,
+              dataUrlImagen ? el('img', {
+                src: dataUrlImagen,
                 alt: 'Tipología Arquitectónica',
-                crossOrigin: 'anonymous',
                 style: { width: '100%', maxHeight: '135mm', objectFit: 'contain', border: '1px solid #e5e7eb', borderRadius: '4px', display: 'block', margin: '0 auto' }
               }) : el('div', { style: { padding: '30px', border: '1px dashed #d1d5db', borderRadius: '4px', color: '#9ca3af', fontSize: '11px' } },
-                'Lámina técnica en proceso de asignación.'
+                'Cargando lámina técnica arquitectónica...'
               )
             ),
 
@@ -909,3 +889,4 @@
   </script>
 </body>
 </html>
+
