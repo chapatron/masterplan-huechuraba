@@ -33,6 +33,9 @@
       bodega: PRECIO_BODEGA
     };
 
+    // Estacionamientos libres no asignados al paquete base (17 unidades)
+    const ESTACIONAMIENTOS_LIBRES = [1, 2, 3, 4, 5, 6, 7, 25, 26, 27, 28, 30, 32, 36, 37, 39, 51];
+
     const ASIGNACIONES_MASTER = {
       1:  { est: 29, bod: 1 },
       2:  { est: 31, bod: 2 },
@@ -127,6 +130,7 @@
           metrajeExterior: 25.0,
           precioUF: CONFIG_PRECIOS.duplexP1Base + (i * CONFIG_PRECIOS.duplexP1Incremento),
           estacionamientoAsignadoId: asig.est ? 'EST-' + String(asig.est).padStart(2, '0') : null,
+          segundoEstacionamientoId: null,
           bodegaAsignadaId: asig.bod ? 'BOD-' + String(asig.bod).padStart(2, '0') : null,
           estado: 'disponible',
           polygonCoords: `${xBase},110 ${xBase + 58},116 ${xBase + 58},300 ${xBase},295`
@@ -150,6 +154,7 @@
           metrajeExterior: 16.0,
           precioUF: CONFIG_PRECIOS.duplexP4Base + (idx * CONFIG_PRECIOS.duplexP4Incremento),
           estacionamientoAsignadoId: asig.est ? 'EST-' + String(asig.est).padStart(2, '0') : null,
+          segundoEstacionamientoId: null,
           bodegaAsignadaId: asig.bod ? 'BOD-' + String(asig.bod).padStart(2, '0') : null,
           estado: 'disponible',
           polygonCoords: `${xBase},100 ${xBase + 58},106 ${xBase + 58},290 ${xBase},285`
@@ -272,6 +277,9 @@
       const [guardandoEnSheets, setGuardandoEnSheets] = React.useState(false);
       const [dataUrlImagen, setDataUrlImagen] = React.useState(null);
 
+      // Conversor UF a CLP
+      const [valorUF, setValorUF] = React.useState(39500);
+
       const unidadSeleccionada = React.useMemo(() => 
         inventario.find(u => u.id === unidadSeleccionadaId) || null,
         [inventario, unidadSeleccionadaId]
@@ -286,14 +294,25 @@
         observaciones: ''
       });
 
+      // Cálculo comercial dinámico incluyendo 2° estacionamiento
       const totalesComerciales = React.useMemo(() => {
-        if (!unidadSeleccionada) return { base: 0, est: 0, bod: 0, total: 0 };
+        if (!unidadSeleccionada) return { base: 0, est: 0, est2: 0, bod: 0, total: 0, totalCLP: 0 };
         const base = unidadSeleccionada.precioUF || 0;
         const est = unidadSeleccionada.estacionamientoAsignadoId ? PRECIO_ESTACIONAMIENTO : 0;
+        const est2 = unidadSeleccionada.segundoEstacionamientoId ? PRECIO_ESTACIONAMIENTO : 0;
         const bod = unidadSeleccionada.bodegaAsignadaId ? PRECIO_BODEGA : 0;
-        return { base, est, bod, total: base + est + bod };
-      }, [unidadSeleccionada]);
+        const total = base + est + est2 + bod;
+        return {
+          base,
+          est,
+          est2,
+          bod,
+          total,
+          totalCLP: Math.round(total * valorUF)
+        };
+      }, [unidadSeleccionada, valorUF]);
 
+      // Conversión de lámina a DataURL para asegurar renderizado en el PDF
       React.useEffect(() => {
         if (unidadSeleccionada && unidadSeleccionada.imgTipologia) {
           const img = new Image();
@@ -353,21 +372,26 @@
         const encabezados = [
           'ID Unidad', 'Tipo', 'Tipologia Arquitectonica', 'Nivel',
           'Superficie Util (m2)', 'Superficie Exterior Patio/Azotea (m2)',
-          'Estacionamiento Asignado', 'Bodega Asignada', 'Precio Depto (UF)',
-          'Total Inversion Paquete (UF)', 'Estado', 'Nombre Cliente', 'RUT',
-          'Email', 'Telefono', 'Etapa Comercial', 'Observaciones'
+          'Estacionamiento 1', 'Estacionamiento 2', 'Bodega', 'Precio Depto (UF)',
+          'Total Inversion (UF)', 'Total Inversion (CLP)', 'Estado', 'Nombre Cliente',
+          'RUT', 'Email', 'Telefono', 'Etapa Comercial', 'Observaciones'
         ];
 
         const filas = inventarioOrdenado.map(u => {
-          const totalInv = u.tipo.includes('Duplex') ? (u.precioUF + PRECIO_ESTACIONAMIENTO + PRECIO_BODEGA) : u.precioUF;
+          const estExtra = u.segundoEstacionamientoId ? PRECIO_ESTACIONAMIENTO : 0;
+          const totalInv = u.tipo.includes('Duplex') ? (u.precioUF + PRECIO_ESTACIONAMIENTO + estExtra + PRECIO_BODEGA) : u.precioUF;
+          const totalCLP = Math.round(totalInv * valorUF);
           return [
             `"${u.id}"`, `"${u.tipo}"`, `"${u.nombreTipologia || ''}"`, `"${u.nivel}"`,
             u.superficieUtil !== null ? u.superficieUtil : '""',
             u.metrajeExterior !== undefined ? u.metrajeExterior : '""',
-            `"${u.estacionamientoAsignadoId || ''}"`, `"${u.bodegaAsignadaId || ''}"`,
-            u.precioUF, totalInv, `"${u.estado}"`, `"${u.lead ? u.lead.nombre : ''}"`,
-            `"${u.lead ? u.lead.rut : ''}"`, `"${u.lead ? u.lead.email : ''}"`,
-            `"${u.lead ? u.lead.telefono : ''}"`, `"${u.lead ? u.lead.etapa : ''}"`,
+            `"${u.estacionamientoAsignadoId || ''}"`,
+            `"${u.segundoEstacionamientoId || ''}"`,
+            `"${u.bodegaAsignadaId || ''}"`,
+            u.precioUF, totalInv, totalCLP, `"${u.estado}"`,
+            `"${u.lead ? u.lead.nombre : ''}"`, `"${u.lead ? u.lead.rut : ''}"`,
+            `"${u.lead ? u.lead.email : ''}"`, `"${u.lead ? u.lead.telefono : ''}"`,
+            `"${u.lead ? u.lead.etapa : ''}"`,
             `"${((u.lead && u.lead.observaciones) || '').replace(/"/g, '""')}"`
           ];
         });
@@ -431,13 +455,23 @@
 
       const actualizarPrecioUnidad = (nuevoPrecio) => {
         const valorNumerico = parseFloat(nuevoPrecio) || 0;
+        const estExtra = unidadSeleccionada.segundoEstacionamientoId ? PRECIO_ESTACIONAMIENTO : 0;
         const unidadMod = { 
           ...unidadSeleccionada, 
           precioUF: valorNumerico,
-          totalUF: valorNumerico + totalesComerciales.est + totalesComerciales.bod
+          totalUF: valorNumerico + totalesComerciales.est + estExtra + totalesComerciales.bod
         };
         setInventario(prev => prev.map(u => u.id === unidadSeleccionadaId ? unidadMod : u));
         enviarASheetsYCorreo(unidadMod);
+      };
+
+      const toggleSegundoEstacionamiento = (checked) => {
+        const nuevoSegundoEst = checked ? 'EST-01' : null;
+        setInventario(prev => prev.map(u => u.id === unidadSeleccionadaId ? { ...u, segundoEstacionamientoId: nuevoSegundoEst } : u));
+      };
+
+      const cambiarIdSegundoEstacionamiento = (idEst) => {
+        setInventario(prev => prev.map(u => u.id === unidadSeleccionadaId ? { ...u, segundoEstacionamientoId: idEst } : u));
       };
 
       const actualizarPatioUnidad = (nuevoPatio) => {
@@ -445,22 +479,25 @@
         setInventario(prev => prev.map(u => u.id === unidadSeleccionadaId ? { ...u, metrajeExterior: valorNumerico } : u));
       };
 
-      // Se consolida en un único envío con PDF adjunto para evitar correos duplicados
       const guardarLeadYDescargarPDF = (ev) => {
         ev.preventDefault();
         if (!unidadSeleccionadaId || !unidadSeleccionada) return;
+
+        const estInfo = unidadSeleccionada.segundoEstacionamientoId 
+          ? `${unidadSeleccionada.estacionamientoAsignadoId} y ${unidadSeleccionada.segundoEstacionamientoId}`
+          : unidadSeleccionada.estacionamientoAsignadoId;
 
         const unidadMod = {
           ...unidadSeleccionada,
           lead: formLead,
           estado: unidadSeleccionada.estado === 'disponible' ? 'reservada' : unidadSeleccionada.estado,
           totalUF: totalesComerciales.total,
+          totalCLP: totalesComerciales.totalCLP,
           tipologia: unidadSeleccionada.nombreTipologia,
-          estacionamientoId: unidadSeleccionada.estacionamientoAsignadoId,
+          estacionamientoId: estInfo,
           bodegaId: unidadSeleccionada.bodegaAsignadaId
         };
 
-        // Actualiza el estado local en pantalla sin hacer envíos intermedios
         setInventario(prev => prev.map(u => u.id === unidadSeleccionadaId ? unidadMod : u));
 
         if (unidadSeleccionada.tipo.includes('Duplex')) {
@@ -476,7 +513,6 @@
                 jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
               };
 
-              // Genera el Base64, lo adjunta y realiza UN SOLO envío
               window.html2pdf().set(opt).from(elemento).outputPdf('datauristring').then((pdfDataUri) => {
                 const base64Data = pdfDataUri.split(',')[1];
                 unidadMod.pdfBase64 = base64Data;
@@ -528,7 +564,7 @@
 
       return el('div', { className: 'flex h-screen bg-slate-950 text-slate-100 font-sans overflow-hidden' },
         el('div', { className: 'flex-1 flex flex-col border-r border-slate-800 min-w-0' },
-          el('header', { className: 'px-5 py-3.5 bg-slate-900 border-b border-slate-800 flex justify-between items-center gap-4' },
+          el('header', { className: 'px-5 py-3 bg-slate-900 border-b border-slate-800 flex justify-between items-center gap-4' },
             el('div', null,
               el('div', { className: 'flex items-center gap-2.5' },
                 el('h1', { className: 'text-lg font-bold tracking-tight text-white' }, 'Master Plan Inmobiliario — Huechuraba'),
@@ -537,6 +573,16 @@
               el('p', { className: 'text-xs text-indigo-300 font-medium mt-0.5' }, '34 duplex, 34 bodegas y 51 estacionamientos')
             ),
             el('div', { className: 'flex items-center gap-3' },
+              // Conversor UF a CLP en el Header
+              el('div', { className: 'flex items-center gap-1.5 bg-slate-950 px-2.5 py-1 rounded-lg border border-slate-800 text-xs' },
+                el('span', { className: 'text-slate-400 font-medium' }, 'Valor UF: \$'),
+                el('input', {
+                  type: 'number',
+                  value: valorUF,
+                  onChange: (ev) => setValorUF(Number(ev.target.value) || 0),
+                  className: 'w-20 bg-transparent text-emerald-400 font-bold focus:outline-none'
+                })
+              ),
               el('button', {
                 onClick: exportarACSV,
                 className: 'px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-xs font-semibold shadow transition-all'
@@ -646,8 +692,8 @@
 
         // Panel Lateral CRM
         el('div', { className: 'w-[520px] bg-slate-900 flex flex-col overflow-y-auto border-l border-slate-800 flex-shrink-0' },
-          unidadSeleccionada ? el('div', { className: 'p-6 space-y-5' },
-            el('div', { className: 'border-b border-slate-800 pb-4' },
+          unidadSeleccionada ? el('div', { className: 'p-6 space-y-4' },
+            el('div', { className: 'border-b border-slate-800 pb-3' },
               el('div', { className: 'flex justify-between items-start gap-4' },
                 el('div', null,
                   el('span', { className: 'text-xs font-semibold px-2.5 py-1 rounded bg-indigo-950 text-indigo-300 border border-indigo-800' },
@@ -666,6 +712,7 @@
                 )
               ),
 
+              // Resumen Comercial Paquete + CLP
               unidadSeleccionada.tipo.includes('Duplex') && el('div', { className: 'mt-3 bg-slate-950 p-3 rounded-lg border border-indigo-900/60 text-xs space-y-1.5' },
                 el('div', { className: 'flex justify-between text-slate-300' },
                   el('span', null, 'Departamento:'),
@@ -675,13 +722,43 @@
                   el('span', null, `Estacionamiento (${unidadSeleccionada.estacionamientoAsignadoId || 'Sin Asignar'}):`),
                   el('strong', null, `${PRECIO_ESTACIONAMIENTO} UF`)
                 ),
+
+                // Segundo estacionamiento opcional
+                el('div', { className: 'flex justify-between items-center text-slate-300 pt-1 border-t border-slate-900' },
+                  el('label', { className: 'flex items-center gap-2 cursor-pointer' },
+                    el('input', {
+                      type: 'checkbox',
+                      checked: Boolean(unidadSeleccionada.segundoEstacionamientoId),
+                      onChange: (ev) => toggleSegundoEstacionamiento(ev.target.checked),
+                      className: 'rounded text-indigo-600 focus:ring-0 bg-slate-900 border-slate-700'
+                    }),
+                    el('span', { className: 'font-semibold text-indigo-300' }, '+ Añadir 2° Estacionamiento')
+                  ),
+                  unidadSeleccionada.segundoEstacionamientoId && el('select', {
+                    value: unidadSeleccionada.segundoEstacionamientoId,
+                    onChange: (ev) => cambiarIdSegundoEstacionamiento(ev.target.value),
+                    className: 'bg-slate-900 text-white border border-slate-700 rounded px-2 py-0.5 text-xs font-bold'
+                  },
+                    ESTACIONAMIENTOS_LIBRES.map(num => 
+                      el('option', { key: num, value: `EST-${String(num).padStart(2, '0')}` }, `EST-${String(num).padStart(2, '0')} (+350 UF)`)
+                    )
+                  )
+                ),
+
                 el('div', { className: 'flex justify-between text-slate-300' },
                   el('span', null, `Bodega (${unidadSeleccionada.bodegaAsignadaId || 'Sin Asignar'}):`),
                   el('strong', null, `${PRECIO_BODEGA} UF`)
                 ),
-                el('div', { className: 'pt-1.5 border-t border-slate-800 flex justify-between text-emerald-400 font-bold text-sm' },
-                  el('span', null, 'Total Inversión Paquete:'),
-                  el('span', null, `${totalesComerciales.total.toLocaleString('es-CL')} UF`)
+
+                el('div', { className: 'pt-2 border-t border-slate-800' },
+                  el('div', { className: 'flex justify-between text-emerald-400 font-bold text-sm' },
+                    el('span', null, 'Total Inversión (UF):'),
+                    el('span', null, `${totalesComerciales.total.toLocaleString('es-CL')} UF`)
+                  ),
+                  el('div', { className: 'flex justify-between text-slate-400 text-xs mt-0.5' },
+                    el('span', null, 'Equivalente en Pesos:'),
+                    el('span', { className: 'font-semibold text-slate-200 font-mono' }, `$ ${totalesComerciales.totalCLP.toLocaleString('es-CL')} CLP`)
+                  )
                 )
               ),
 
@@ -721,7 +798,7 @@
                 el('img', {
                   src: unidadSeleccionada.imgTipologia,
                   alt: unidadSeleccionada.nombreTipologia,
-                  className: 'w-full h-40 object-contain rounded bg-white border border-slate-800'
+                  className: 'w-full h-36 object-contain rounded bg-white border border-slate-800'
                 })
               ),
 
@@ -806,7 +883,7 @@
                   value: formLead.observaciones,
                   onChange: ev => setFormLead({ ...formLead, observaciones: ev.target.value }),
                   className: 'w-full bg-slate-950 border border-slate-800 rounded px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500',
-                  placeholder: 'Detalle de compras, segundo estacionamiento...'
+                  placeholder: 'Detalle de segundo estacionamiento, notas de pago...'
                 })
               ),
               el('button', {
@@ -823,7 +900,7 @@
           )
         ),
 
-        // Plantilla Imprimible A4 Oculta con DataURL inyectada
+        // Plantilla Imprimible A4 Oculta
         unidadSeleccionada && el('div', { style: { position: 'fixed', left: '-9999px', top: '0', zIndex: -100 } },
           el('div', { id: 'plantilla-ficha-pdf', style: { width: '190mm', padding: '10mm', fontFamily: 'Arial, sans-serif', color: '#111827', backgroundColor: '#ffffff' } },
             el('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #4f46e5', paddingBottom: '8px' } },
@@ -855,9 +932,11 @@
                 ),
                 el('div', { style: { borderTop: '1px solid #e5e7eb', marginTop: '4px', paddingTop: '4px', fontSize: '10px' } },
                   el('p', { style: { margin: '1px 0' } }, `• Depto: ${unidadSeleccionada.precioUF.toLocaleString('es-CL')} UF`),
-                  el('p', { style: { margin: '1px 0' } }, `• ${unidadSeleccionada.estacionamientoAsignadoId || 'Estacionamiento'}: ${PRECIO_ESTACIONAMIENTO} UF`),
-                  el('p', { style: { margin: '1px 0' } }, `• ${unidadSeleccionada.bodegaAsignadaId || 'Bodega'}: ${PRECIO_BODEGA} UF`),
-                  el('p', { style: { margin: '3px 0 0 0', fontWeight: 'bold', color: '#4f46e5', fontSize: '11px' } }, `Total Inversión: ${totalesComerciales.total.toLocaleString('es-CL')} UF`)
+                  el('p', { style: { margin: '1px 0' } }, `• Estacionamiento 1 (${unidadSeleccionada.estacionamientoAsignadoId}): ${PRECIO_ESTACIONAMIENTO} UF`),
+                  unidadSeleccionada.segundoEstacionamientoId && el('p', { style: { margin: '1px 0', color: '#4f46e5', fontWeight: '600' } }, `• Estacionamiento 2 (${unidadSeleccionada.segundoEstacionamientoId}): ${PRECIO_ESTACIONAMIENTO} UF`),
+                  el('p', { style: { margin: '1px 0' } }, `• Bodega (${unidadSeleccionada.bodegaAsignadaId}): ${PRECIO_BODEGA} UF`),
+                  el('p', { style: { margin: '3px 0 0 0', fontWeight: 'bold', color: '#4f46e5', fontSize: '11px' } }, `Total Inversión: ${totalesComerciales.total.toLocaleString('es-CL')} UF`),
+                  el('p', { style: { margin: '1px 0 0 0', color: '#6b7280', fontSize: '9.5px' } }, `Equivalente aprox: $ ${totalesComerciales.totalCLP.toLocaleString('es-CL')} CLP (UF: $${valorUF.toLocaleString('es-CL')})`)
                 )
               )
             ),
@@ -871,12 +950,12 @@
                 alt: 'Tipología Arquitectónica',
                 style: { width: '100%', maxHeight: '135mm', objectFit: 'contain', border: '1px solid #e5e7eb', borderRadius: '4px', display: 'block', margin: '0 auto' }
               }) : el('div', { style: { padding: '30px', border: '1px dashed #d1d5db', borderRadius: '4px', color: '#9ca3af', fontSize: '11px' } },
-                'Cargando lámina técnica arquitectónica...'
+                'Lámina técnica en proceso de asignación.'
               )
             ),
 
             el('div', { style: { marginTop: '10px', borderTop: '1px solid #e5e7eb', paddingTop: '4px', fontSize: '7.5px', color: '#9ca3af', textAlign: 'justify' } },
-              'Las imágenes contenidas en este material son ilustrativas y las ambientaciones son referenciales. Superficies y medidas aproximadas según Ley 19.472. Las características y precios del proyecto pueden sufrir variaciones durante su desarrollo comercial sin previo aviso.'
+              'Las imágenes contenidas en este material son ilustrativas y las ambientaciones son referenciales. Superficies y medidas aproximadas según Ley 19.472. Las características y precios del proyecto pueden sufrir variaciones durante su desarrollo comercial sin previo aviso. Valores en pesos referenciales al valor UF del día.'
             )
           )
         )
