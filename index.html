@@ -33,7 +33,6 @@
       bodega: PRECIO_BODEGA
     };
 
-    // Estacionamientos libres no asignados al paquete base (17 unidades)
     const ESTACIONAMIENTOS_LIBRES = [1, 2, 3, 4, 5, 6, 7, 25, 26, 27, 28, 30, 32, 36, 37, 39, 51];
 
     const ASIGNACIONES_MASTER = {
@@ -280,6 +279,11 @@
       // Conversor UF a CLP
       const [valorUF, setValorUF] = React.useState(39500);
 
+      // ESTADOS DE FILTROS RÁPIDOS
+      const [filtroEstado, setFiltroEstado] = React.useState('todos');       // 'todos', 'disponible', 'reservada', 'vendida'
+      const [filtroDisposicion, setFiltroDisposicion] = React.useState('todas'); // 'todas', 'esquina', 'central'
+      const [precioMaximo, setPrecioMaximo] = React.useState(6500);
+
       const unidadSeleccionada = React.useMemo(() => 
         inventario.find(u => u.id === unidadSeleccionadaId) || null,
         [inventario, unidadSeleccionadaId]
@@ -294,7 +298,6 @@
         observaciones: ''
       });
 
-      // Cálculo comercial dinámico incluyendo 2° estacionamiento
       const totalesComerciales = React.useMemo(() => {
         if (!unidadSeleccionada) return { base: 0, est: 0, est2: 0, bod: 0, total: 0, totalCLP: 0 };
         const base = unidadSeleccionada.precioUF || 0;
@@ -312,7 +315,6 @@
         };
       }, [unidadSeleccionada, valorUF]);
 
-      // Conversión de lámina a DataURL para asegurar renderizado en el PDF
       React.useEffect(() => {
         if (unidadSeleccionada && unidadSeleccionada.imgTipologia) {
           const img = new Image();
@@ -535,14 +537,30 @@
         }
       };
 
-      const itemsFiltrados = inventario.filter(item => {
+      // EVALUACIÓN DE FILTROS EN TIEMPO REAL
+      const unidadPasaFiltros = (item) => {
+        if (filtroEstado !== 'todos' && item.estado !== filtroEstado) return false;
+        
+        if (item.tipo.includes('Duplex')) {
+          if (filtroDisposicion === 'esquina' && !item.nombreTipologia.toLowerCase().includes('esquina')) return false;
+          if (filtroDisposicion === 'central' && item.nombreTipologia.toLowerCase().includes('esquina')) return false;
+          if (item.precioUF > precioMaximo) return false;
+        }
+        return true;
+      };
+
+      const itemsFiltradosPlanta = inventario.filter(item => {
         if (plantaActiva === 'P1') return item.tipo === 'Duplex Garden';
         if (plantaActiva === 'P4') return item.tipo === 'Duplex Rooftop';
         if (plantaActiva === 'SUB') return item.nivel === 'Subterráneo';
         return true;
       });
 
-      const getColorPorEstado = (estado, tipo) => {
+      const getColorPorEstado = (estado, tipo, cumpleFiltros) => {
+        if (!cumpleFiltros) {
+          return 'fill-slate-900/30 stroke-slate-800 opacity-20';
+        }
+
         if (tipo === 'Bodega') {
           switch (estado) {
             case 'disponible': return 'fill-cyan-500/50 stroke-cyan-400 hover:fill-cyan-400/70';
@@ -564,16 +582,17 @@
 
       return el('div', { className: 'flex h-screen bg-slate-950 text-slate-100 font-sans overflow-hidden' },
         el('div', { className: 'flex-1 flex flex-col border-r border-slate-800 min-w-0' },
-          el('header', { className: 'px-5 py-3 bg-slate-900 border-b border-slate-800 flex justify-between items-center gap-4' },
+          
+          // Encabezado Principal
+          el('header', { className: 'px-5 py-2.5 bg-slate-900 border-b border-slate-800 flex justify-between items-center gap-4' },
             el('div', null,
               el('div', { className: 'flex items-center gap-2.5' },
                 el('h1', { className: 'text-lg font-bold tracking-tight text-white' }, 'Master Plan Inmobiliario — Huechuraba'),
                 guardandoEnSheets && el('span', { className: 'text-[11px] bg-emerald-950 text-emerald-400 border border-emerald-800 px-2 py-0.5 rounded font-mono' }, '● Guardando y Notificando...')
               ),
-              el('p', { className: 'text-xs text-indigo-300 font-medium mt-0.5' }, '34 duplex, 34 bodegas y 51 estacionamientos')
+              el('p', { className: 'text-xs text-indigo-300 font-medium' }, '34 duplex, 34 bodegas y 51 estacionamientos')
             ),
             el('div', { className: 'flex items-center gap-3' },
-              // Conversor UF a CLP en el Header
               el('div', { className: 'flex items-center gap-1.5 bg-slate-950 px-2.5 py-1 rounded-lg border border-slate-800 text-xs' },
                 el('span', { className: 'text-slate-400 font-medium' }, 'Valor UF: \$'),
                 el('input', {
@@ -586,24 +605,87 @@
               el('button', {
                 onClick: exportarACSV,
                 className: 'px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-xs font-semibold shadow transition-all'
-              }, 'Exportar a sheets'),
-              el('div', { className: 'flex items-center gap-1 bg-slate-950 p-1 rounded-lg border border-slate-800' },
-                el('button', {
-                  onClick: () => setPlantaActiva('SUB'),
-                  className: `px-3 py-1.5 text-xs font-semibold rounded ${plantaActiva === 'SUB' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-white'}`
-                }, 'Subterráneo'),
-                el('button', {
-                  onClick: () => setPlantaActiva('P1'),
-                  className: `px-3 py-1.5 text-xs font-semibold rounded ${plantaActiva === 'P1' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-white'}`
-                }, 'Duplex Garden (1-17)'),
-                el('button', {
-                  onClick: () => setPlantaActiva('P4'),
-                  className: `px-3 py-1.5 text-xs font-semibold rounded ${plantaActiva === 'P4' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-white'}`
-                }, 'Duplex Rooftop (18-34)')
-              )
+              }, 'Exportar a sheets')
             )
           ),
 
+          // BARRA DE FILTROS RÁPIDOS
+          el('div', { className: 'px-5 py-2 bg-slate-900/90 border-b border-slate-800/80 flex flex-wrap items-center justify-between gap-3 text-xs' },
+            el('div', { className: 'flex flex-wrap items-center gap-3' },
+              
+              // Selector de Planta
+              el('div', { className: 'flex items-center gap-1 bg-slate-950 p-1 rounded-lg border border-slate-800' },
+                el('button', {
+                  onClick: () => setPlantaActiva('SUB'),
+                  className: `px-2.5 py-1 font-semibold rounded ${plantaActiva === 'SUB' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-white'}`
+                }, 'Subterráneo'),
+                el('button', {
+                  onClick: () => setPlantaActiva('P1'),
+                  className: `px-2.5 py-1 font-semibold rounded ${plantaActiva === 'P1' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-white'}`
+                }, 'Garden (P1)'),
+                el('button', {
+                  onClick: () => setPlantaActiva('P4'),
+                  className: `px-2.5 py-1 font-semibold rounded ${plantaActiva === 'P4' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-white'}`
+                }, 'Rooftop (P4)')
+              ),
+
+              // Filtro por Estado
+              el('div', { className: 'flex items-center gap-1.5 bg-slate-950 px-2.5 py-1 rounded-lg border border-slate-800' },
+                el('span', { className: 'text-slate-400' }, 'Estado:'),
+                el('select', {
+                  value: filtroEstado,
+                  onChange: (ev) => setFiltroEstado(ev.target.value),
+                  className: 'bg-transparent text-white font-medium focus:outline-none cursor-pointer'
+                },
+                  el('option', { value: 'todos', className: 'bg-slate-900' }, 'Todos'),
+                  el('option', { value: 'disponible', className: 'bg-slate-900' }, 'Solo Disponibles'),
+                  el('option', { value: 'reservada', className: 'bg-slate-900' }, 'Reservadas'),
+                  el('option', { value: 'vendida', className: 'bg-slate-900' }, 'Vendidas')
+                )
+              ),
+
+              // Filtro por Distribución (Solo para plantas de duplex)
+              plantaActiva !== 'SUB' && el('div', { className: 'flex items-center gap-1.5 bg-slate-950 px-2.5 py-1 rounded-lg border border-slate-800' },
+                el('span', { className: 'text-slate-400' }, 'Distribución:'),
+                el('select', {
+                  value: filtroDisposicion,
+                  onChange: (ev) => setFiltroDisposicion(ev.target.value),
+                  className: 'bg-transparent text-white font-medium focus:outline-none cursor-pointer'
+                },
+                  el('option', { value: 'todas', className: 'bg-slate-900' }, 'Todas'),
+                  el('option', { value: 'esquina', className: 'bg-slate-900' }, 'Solo Esquinas'),
+                  el('option', { value: 'central', className: 'bg-slate-900' }, 'Solo Centrales')
+                )
+              ),
+
+              // Filtro por Presupuesto Máximo
+              plantaActiva !== 'SUB' && el('div', { className: 'flex items-center gap-2 bg-slate-950 px-3 py-1 rounded-lg border border-slate-800' },
+                el('span', { className: 'text-slate-400' }, 'Hasta:'),
+                el('input', {
+                  type: 'range',
+                  min: 4800,
+                  max: 6200,
+                  step: 50,
+                  value: precioMaximo,
+                  onChange: (ev) => setPrecioMaximo(Number(ev.target.value)),
+                  className: 'w-24 accent-indigo-500 cursor-pointer'
+                }),
+                el('span', { className: 'font-bold text-indigo-300 font-mono text-[11px]' }, `${precioMaximo.toLocaleString('es-CL')} UF`)
+              )
+            ),
+
+            // Limpiar Filtros
+            el('button', {
+              onClick: () => {
+                setFiltroEstado('todos');
+                setFiltroDisposicion('todas');
+                setPrecioMaximo(6500);
+              },
+              className: 'text-slate-400 hover:text-indigo-300 underline font-medium text-[11px]'
+            }, 'Limpiar Filtros')
+          ),
+
+          // Plano Interactivo
           el('div', { className: 'flex-1 relative bg-slate-950 overflow-auto p-3 flex items-center justify-center' },
             el('div', { className: 'relative border border-slate-800 bg-slate-900/60 rounded-xl p-3 shadow-2xl w-full max-w-[1260px]' },
               el('div', { className: 'absolute top-3 left-3 z-10 flex items-center gap-3.5 bg-slate-950/90 px-3 py-1.5 rounded border border-slate-800 text-xs' },
@@ -616,7 +698,7 @@
                 )
               ),
 
-              el('svg', { viewBox: '0 0 1260 530', className: 'w-full h-auto max-h-[560px] select-none' },
+              el('svg', { viewBox: '0 0 1260 530', className: 'w-full h-auto max-h-[550px] select-none' },
                 plantaActiva === 'SUB' ? el('g', null,
                   el('polygon', { points: '40,35 1240,115 1230,285 40,285', fill: 'none', stroke: '#1e293b', strokeWidth: '1.5' }),
                   el('rect', { x: '30', y: '285', width: '70', height: '230', fill: '#0f172a', stroke: '#1e293b', strokeWidth: '1' }),
@@ -633,27 +715,28 @@
                   el('rect', { x: '50', y: '80', width: '1170', height: '270', fill: 'none', stroke: '#1e293b', strokeWidth: '1.5', rx: '4' })
                 ),
 
-                itemsFiltrados.map(item => {
+                itemsFiltradosPlanta.map(item => {
                   const isSelected = unidadSeleccionadaId === item.id;
+                  const cumple = unidadPasaFiltros(item);
                   const coordsArr = item.polygonCoords.split(' ')[0].split(',');
                   const xText = Number(coordsArr[0]);
                   const yText = Number(coordsArr[1]);
 
                   return el('g', {
                     key: item.id,
-                    className: 'cursor-pointer',
-                    onClick: () => seleccionarUnidad(item),
-                    onMouseEnter: () => setHoverUnidad(item),
+                    className: cumple ? 'cursor-pointer' : 'cursor-not-allowed',
+                    onClick: () => cumple && seleccionarUnidad(item),
+                    onMouseEnter: () => cumple && setHoverUnidad(item),
                     onMouseLeave: () => setHoverUnidad(null)
                   },
                     el('polygon', {
                       points: item.polygonCoords,
-                      className: `${getColorPorEstado(item.estado, item.tipo)} ${isSelected ? 'stroke-white stroke-[2.5px]' : 'stroke-1'} transition-all duration-150`
+                      className: `${getColorPorEstado(item.estado, item.tipo, cumple)} ${isSelected ? 'stroke-white stroke-[2.5px]' : 'stroke-1'} transition-all duration-150`
                     }),
                     el('text', {
                       x: item.tipo === 'Bodega' ? xText + 5 : item.tipo === 'Estacionamiento' ? xText + 6 : xText + 10,
                       y: item.tipo === 'Bodega' ? yText + 10 : item.tipo === 'Estacionamiento' ? yText + 48 : yText + 70,
-                      fill: '#ffffff',
+                      fill: cumple ? '#ffffff' : '#475569',
                       fontSize: item.tipo === 'Bodega' ? '8.5' : item.tipo === 'Estacionamiento' ? '10' : '11',
                       fontWeight: 'bold',
                       className: 'pointer-events-none tracking-tight'
@@ -664,6 +747,7 @@
             )
           ),
 
+          // Footer de Estadísticas
           el('footer', { className: 'p-3 bg-slate-900 border-t border-slate-800 grid grid-cols-4 gap-4 text-center' },
             el('div', { className: 'bg-slate-950 p-2 rounded border border-slate-800' },
               el('span', { className: 'text-xs text-slate-400' }, 'Total Departamentos'),
@@ -712,7 +796,6 @@
                 )
               ),
 
-              // Resumen Comercial Paquete + CLP
               unidadSeleccionada.tipo.includes('Duplex') && el('div', { className: 'mt-3 bg-slate-950 p-3 rounded-lg border border-indigo-900/60 text-xs space-y-1.5' },
                 el('div', { className: 'flex justify-between text-slate-300' },
                   el('span', null, 'Departamento:'),
@@ -723,7 +806,6 @@
                   el('strong', null, `${PRECIO_ESTACIONAMIENTO} UF`)
                 ),
 
-                // Segundo estacionamiento opcional
                 el('div', { className: 'flex justify-between items-center text-slate-300 pt-1 border-t border-slate-900' },
                   el('label', { className: 'flex items-center gap-2 cursor-pointer' },
                     el('input', {
