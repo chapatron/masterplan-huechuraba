@@ -269,19 +269,19 @@
 
     function MasterPlanApp() {
       const [inventario, setInventario] = React.useState(generarInventarioInicial);
-      const [plantaActiva, setPlantaActiva] = React.useState('SUB');
+      const [plantaActiva, setPlantaActiva] = React.useState('P1');
       const [unidadSeleccionadaId, setUnidadSeleccionadaId] = React.useState(null);
       const [hoverUnidad, setHoverUnidad] = React.useState(null);
       const [generandoPDF, setGenerandoPDF] = React.useState(false);
       const [guardandoEnSheets, setGuardandoEnSheets] = React.useState(false);
       const [dataUrlImagen, setDataUrlImagen] = React.useState(null);
 
-      // Conversor UF a CLP
+      // Conversor UF
       const [valorUF, setValorUF] = React.useState(39500);
 
-      // ESTADOS DE FILTROS RÁPIDOS
-      const [filtroEstado, setFiltroEstado] = React.useState('todos');       // 'todos', 'disponible', 'reservada', 'vendida'
-      const [filtroDisposicion, setFiltroDisposicion] = React.useState('todas'); // 'todas', 'esquina', 'central'
+      // Filtros rápidos
+      const [filtroEstado, setFiltroEstado] = React.useState('todos');
+      const [filtroDisposicion, setFiltroDisposicion] = React.useState('todas');
       const [precioMaximo, setPrecioMaximo] = React.useState(6500);
 
       const unidadSeleccionada = React.useMemo(() => 
@@ -537,10 +537,8 @@
         }
       };
 
-      // EVALUACIÓN DE FILTROS EN TIEMPO REAL
       const unidadPasaFiltros = (item) => {
         if (filtroEstado !== 'todos' && item.estado !== filtroEstado) return false;
-        
         if (item.tipo.includes('Duplex')) {
           if (filtroDisposicion === 'esquina' && !item.nombreTipologia.toLowerCase().includes('esquina')) return false;
           if (filtroDisposicion === 'central' && item.nombreTipologia.toLowerCase().includes('esquina')) return false;
@@ -583,7 +581,7 @@
       return el('div', { className: 'flex h-screen bg-slate-950 text-slate-100 font-sans overflow-hidden' },
         el('div', { className: 'flex-1 flex flex-col border-r border-slate-800 min-w-0' },
           
-          // Encabezado Principal
+          // Encabezado
           el('header', { className: 'px-5 py-2.5 bg-slate-900 border-b border-slate-800 flex justify-between items-center gap-4' },
             el('div', null,
               el('div', { className: 'flex items-center gap-2.5' },
@@ -610,7 +608,7 @@
           ),
 
           // BARRA DE FILTROS RÁPIDOS
-          el('div', { className: 'px-5 py-2 bg-slate-900/90 border-b border-slate-800/80 flex flex-wrap items-center justify-between gap-3 text-xs' },
+          el('div', { className: 'px-5 py-2 bg-slate-900/90 border-b border-slate-800 flex flex-wrap items-center justify-between gap-3 text-xs' },
             el('div', { className: 'flex flex-wrap items-center gap-3' },
               
               // Selector de Planta
@@ -644,7 +642,7 @@
                 )
               ),
 
-              // Filtro por Distribución (Solo para plantas de duplex)
+              // Filtro por Distribución
               plantaActiva !== 'SUB' && el('div', { className: 'flex items-center gap-1.5 bg-slate-950 px-2.5 py-1 rounded-lg border border-slate-800' },
                 el('span', { className: 'text-slate-400' }, 'Distribución:'),
                 el('select', {
@@ -658,13 +656,13 @@
                 )
               ),
 
-              // Filtro por Presupuesto Máximo
+              // Filtro por Presupuesto
               plantaActiva !== 'SUB' && el('div', { className: 'flex items-center gap-2 bg-slate-950 px-3 py-1 rounded-lg border border-slate-800' },
                 el('span', { className: 'text-slate-400' }, 'Hasta:'),
                 el('input', {
                   type: 'range',
                   min: 4800,
-                  max: 6200,
+                  max: 6500,
                   step: 50,
                   value: precioMaximo,
                   onChange: (ev) => setPrecioMaximo(Number(ev.target.value)),
@@ -674,7 +672,6 @@
               )
             ),
 
-            // Limpiar Filtros
             el('button', {
               onClick: () => {
                 setFiltroEstado('todos');
@@ -685,7 +682,7 @@
             }, 'Limpiar Filtros')
           ),
 
-          // Plano Interactivo
+          // Contenedor Plano SVG
           el('div', { className: 'flex-1 relative bg-slate-950 overflow-auto p-3 flex items-center justify-center' },
             el('div', { className: 'relative border border-slate-800 bg-slate-900/60 rounded-xl p-3 shadow-2xl w-full max-w-[1260px]' },
               el('div', { className: 'absolute top-3 left-3 z-10 flex items-center gap-3.5 bg-slate-950/90 px-3 py-1.5 rounded border border-slate-800 text-xs' },
@@ -747,7 +744,7 @@
             )
           ),
 
-          // Footer de Estadísticas
+          // Footer
           el('footer', { className: 'p-3 bg-slate-900 border-t border-slate-800 grid grid-cols-4 gap-4 text-center' },
             el('div', { className: 'bg-slate-950 p-2 rounded border border-slate-800' },
               el('span', { className: 'text-xs text-slate-400' }, 'Total Departamentos'),
