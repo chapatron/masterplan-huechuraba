@@ -276,12 +276,20 @@
       const [guardandoEnSheets, setGuardandoEnSheets] = React.useState(false);
       const [dataUrlImagen, setDataUrlImagen] = React.useState(null);
 
+      // Conversor UF
       const [valorUF, setValorUF] = React.useState(39500);
 
       // Filtros rápidos
       const [filtroEstado, setFiltroEstado] = React.useState('todos');
       const [filtroDisposicion, setFiltroDisposicion] = React.useState('todas');
       const [precioMaximo, setPrecioMaximo] = React.useState(6500);
+
+      // PARÁMETROS DEL SIMULADOR FINANCIERO
+      const [pctPie, setPctPie] = React.useState(20);          // 5, 10, 15, 20 %
+      const [montoReservaUF, setMontoReservaUF] = React.useState(50); // Reserva comercial en UF
+      const [cuotasPie, setCuotasPie] = React.useState(24);    // 12 a 36 cuotas
+      const [tasaHipotecarioAnual, setTasaHipotecarioAnual] = React.useState(4.50); // Tasa anual en %
+      const [plazoCreditoAnios, setPlazoCreditoAnios] = React.useState(25); // 20, 25, 30 años
 
       const unidadSeleccionada = React.useMemo(() => 
         inventario.find(u => u.id === unidadSeleccionadaId) || null,
@@ -297,22 +305,47 @@
         observaciones: ''
       });
 
-      const totalesComerciales = React.useMemo(() => {
-        if (!unidadSeleccionada) return { base: 0, est: 0, est2: 0, bod: 0, total: 0, totalCLP: 0 };
+      // MODELACIÓN FINANCIERA INTEGRADA
+      const calculosFinancieros = React.useMemo(() => {
+        if (!unidadSeleccionada) return {
+          base: 0, est: 0, est2: 0, bod: 0, total: 0, totalCLP: 0,
+          montoPieUF: 0, saldoPieUF: 0, cuotaMensualPieUF: 0, cuotaMensualPieCLP: 0,
+          montoCreditoUF: 0, dividendoUF: 0, dividendoCLP: 0, rentaSugeridaCLP: 0
+        };
+
         const base = unidadSeleccionada.precioUF || 0;
         const est = unidadSeleccionada.estacionamientoAsignadoId ? PRECIO_ESTACIONAMIENTO : 0;
         const est2 = unidadSeleccionada.segundoEstacionamientoId ? PRECIO_ESTACIONAMIENTO : 0;
         const bod = unidadSeleccionada.bodegaAsignadaId ? PRECIO_BODEGA : 0;
         const total = base + est + est2 + bod;
+        const totalCLP = Math.round(total * valorUF);
+
+        // 1. Simulación de Cuotas de Pie
+        const montoPieUF = total * (pctPie / 100);
+        const saldoPieUF = Math.max(0, montoPieUF - montoReservaUF);
+        const cuotaMensualPieUF = cuotasPie > 0 ? saldoPieUF / cuotasPie : 0;
+        const cuotaMensualPieCLP = Math.round(cuotaMensualPieUF * valorUF);
+
+        // 2. Simulación Crédito Hipotecario
+        const montoCreditoUF = total * (1 - (pctPie / 100));
+        const numMeses = plazoCreditoAnios * 12;
+        const tasaMensual = Math.pow(1 + (tasaHipotecarioAnual / 100), 1 / 12) - 1;
+
+        let dividendoUF = 0;
+        if (tasaMensual > 0 && numMeses > 0) {
+          dividendoUF = montoCreditoUF * ( (tasaMensual * Math.pow(1 + tasaMensual, numMeses)) / (Math.pow(1 + tasaMensual, numMeses) - 1) );
+        }
+        const dividendoCLP = Math.round(dividendoUF * valorUF);
+
+        // 3. Renta Sugerida Líquida (Dividendo <= 25% del ingreso líquido familiar)
+        const rentaSugeridaCLP = dividendoCLP * 4;
+
         return {
-          base,
-          est,
-          est2,
-          bod,
-          total,
-          totalCLP: Math.round(total * valorUF)
+          base, est, est2, bod, total, totalCLP,
+          montoPieUF, saldoPieUF, cuotaMensualPieUF, cuotaMensualPieCLP,
+          montoCreditoUF, dividendoUF, dividendoCLP, rentaSugeridaCLP
         };
-      }, [unidadSeleccionada, valorUF]);
+      }, [unidadSeleccionada, valorUF, pctPie, montoReservaUF, cuotasPie, tasaHipotecarioAnual, plazoCreditoAnios]);
 
       React.useEffect(() => {
         if (unidadSeleccionada && unidadSeleccionada.imgTipologia) {
@@ -448,7 +481,7 @@
           ...unidadSeleccionada, 
           estado: nuevoEstado, 
           lead: formLead,
-          totalUF: totalesComerciales.total
+          totalUF: calculosFinancieros.total
         };
         setInventario(prev => prev.map(u => u.id === unidadSeleccionadaId ? unidadMod : u));
         enviarASheetsYCorreo(unidadMod);
@@ -460,7 +493,7 @@
         const unidadMod = { 
           ...unidadSeleccionada, 
           precioUF: valorNumerico,
-          totalUF: valorNumerico + totalesComerciales.est + estExtra + totalesComerciales.bod
+          totalUF: valorNumerico + calculosFinancieros.est + estExtra + calculosFinancieros.bod
         };
         setInventario(prev => prev.map(u => u.id === unidadSeleccionadaId ? unidadMod : u));
         enviarASheetsYCorreo(unidadMod);
@@ -488,7 +521,6 @@
           ? `${unidadSeleccionada.estacionamientoAsignadoId} y ${unidadSeleccionada.segundoEstacionamientoId}`
           : unidadSeleccionada.estacionamientoAsignadoId;
 
-        // Si estaba disponible o en contacto inicial, al emitir cotización formal pasa a 'cotizada'
         const nuevoEstado = (unidadSeleccionada.estado === 'disponible' || unidadSeleccionada.estado === 'contacto')
           ? 'cotizada' 
           : unidadSeleccionada.estado;
@@ -502,8 +534,8 @@
           ...unidadSeleccionada,
           lead: leadActualizado,
           estado: nuevoEstado,
-          totalUF: totalesComerciales.total,
-          totalCLP: totalesComerciales.totalCLP,
+          totalUF: calculosFinancieros.total,
+          totalCLP: calculosFinancieros.totalCLP,
           tipologia: unidadSeleccionada.nombreTipologia,
           estacionamientoId: estInfo,
           bodegaId: unidadSeleccionada.bodegaAsignadaId
@@ -564,7 +596,6 @@
         return true;
       });
 
-      // PALETA DE COLORES SEGÚN ESTADO COMERCIAL
       const getColorPorEstado = (estado, tipo, cumpleFiltros) => {
         if (!cumpleFiltros) {
           return 'fill-slate-900/30 stroke-slate-800 opacity-20';
@@ -607,7 +638,7 @@
             ),
             el('div', { className: 'flex items-center gap-3' },
               el('div', { className: 'flex items-center gap-1.5 bg-slate-950 px-2.5 py-1 rounded-lg border border-slate-800 text-xs' },
-                el('span', { className: 'text-slate-400 font-medium' }, 'Valor UF: \$'),
+                el('span', { className: 'text-slate-400 font-medium' }, 'Valor UF: $'),
                 el('input', {
                   type: 'number',
                   value: valorUF,
@@ -699,11 +730,11 @@
             }, 'Limpiar Filtros')
           ),
 
-          // Contenedor Plano SVG con Leyenda Extendida
+          // Contenedor Plano SVG
           el('div', { className: 'flex-1 relative bg-slate-950 overflow-auto p-3 flex items-center justify-center' },
             el('div', { className: 'relative border border-slate-800 bg-slate-900/60 rounded-xl p-3 shadow-2xl w-full max-w-[1260px]' },
               
-              // Leyenda de Colores
+              // Leyenda
               el('div', { className: 'absolute top-3 left-3 z-10 flex flex-wrap items-center gap-3 bg-slate-950/90 px-3 py-1.5 rounded border border-slate-800 text-[11px]' },
                 el('span', { className: 'flex items-center gap-1.5' }, el('span', { className: 'w-2.5 h-2.5 bg-emerald-500 rounded-sm' }), 'Disponible'),
                 el('span', { className: 'flex items-center gap-1.5' }, el('span', { className: 'w-2.5 h-2.5 bg-sky-500 rounded-sm' }), 'Contacto Inicial'),
@@ -777,7 +808,7 @@
               )
             ),
             el('div', { className: 'bg-slate-950 p-2 rounded border border-slate-800' },
-              el('span', { className: 'text-xs text-slate-400' }, 'En Gestión (Cotizada / Reservada)'),
+              el('span', { className: 'text-xs text-slate-400' }, 'En Gestión'),
               el('p', { className: 'text-lg font-bold text-violet-400' },
                 inventario.filter(u => u.tipo.includes('Duplex') && (u.estado === 'cotizada' || u.estado === 'reservada' || u.estado === 'contacto')).length
               )
@@ -791,9 +822,11 @@
           )
         ),
 
-        // Panel Lateral CRM
-        el('div', { className: 'w-[520px] bg-slate-900 flex flex-col overflow-y-auto border-l border-slate-800 flex-shrink-0' },
-          unidadSeleccionada ? el('div', { className: 'p-6 space-y-4' },
+        // PANEL LATERAL CRM + SIMULADOR FINANCIERO
+        el('div', { className: 'w-[530px] bg-slate-900 flex flex-col overflow-y-auto border-l border-slate-800 flex-shrink-0' },
+          unidadSeleccionada ? el('div', { className: 'p-5 space-y-4' },
+            
+            // Ficha Principal y Precios
             el('div', { className: 'border-b border-slate-800 pb-3' },
               el('div', { className: 'flex justify-between items-start gap-4' },
                 el('div', null,
@@ -813,6 +846,7 @@
                 )
               ),
 
+              // Resumen Comercial Paquete
               unidadSeleccionada.tipo.includes('Duplex') && el('div', { className: 'mt-3 bg-slate-950 p-3 rounded-lg border border-indigo-900/60 text-xs space-y-1.5' },
                 el('div', { className: 'flex justify-between text-slate-300' },
                   el('span', null, 'Departamento:'),
@@ -822,7 +856,6 @@
                   el('span', null, `Estacionamiento (${unidadSeleccionada.estacionamientoAsignadoId || 'Sin Asignar'}):`),
                   el('strong', null, `${PRECIO_ESTACIONAMIENTO} UF`)
                 ),
-
                 el('div', { className: 'flex justify-between items-center text-slate-300 pt-1 border-t border-slate-900' },
                   el('label', { className: 'flex items-center gap-2 cursor-pointer' },
                     el('input', {
@@ -843,24 +876,142 @@
                     )
                   )
                 ),
-
                 el('div', { className: 'flex justify-between text-slate-300' },
                   el('span', null, `Bodega (${unidadSeleccionada.bodegaAsignadaId || 'Sin Asignar'}):`),
                   el('strong', null, `${PRECIO_BODEGA} UF`)
                 ),
-
                 el('div', { className: 'pt-2 border-t border-slate-800' },
                   el('div', { className: 'flex justify-between text-emerald-400 font-bold text-sm' },
                     el('span', null, 'Total Inversión (UF):'),
-                    el('span', null, `${totalesComerciales.total.toLocaleString('es-CL')} UF`)
+                    el('span', null, `${calculosFinancieros.total.toLocaleString('es-CL')} UF`)
                   ),
                   el('div', { className: 'flex justify-between text-slate-400 text-xs mt-0.5' },
                     el('span', null, 'Equivalente en Pesos:'),
-                    el('span', { className: 'font-semibold text-slate-200 font-mono' }, `$ ${totalesComerciales.totalCLP.toLocaleString('es-CL')} CLP`)
+                    el('span', { className: 'font-semibold text-slate-200 font-mono' }, `$ ${calculosFinancieros.totalCLP.toLocaleString('es-CL')} CLP`)
                   )
                 )
               ),
 
+              // SIMULADOR FINANCIERO: PIE EN CUOTAS Y CRÉDITO HIPOTECARIO
+              unidadSeleccionada.tipo.includes('Duplex') && el('div', { className: 'mt-3 bg-indigo-950/40 p-3.5 rounded-lg border border-indigo-800/80 space-y-3 text-xs' },
+                el('div', { className: 'flex justify-between items-center border-b border-indigo-900/80 pb-2' },
+                  el('span', { className: 'font-bold text-indigo-200 uppercase tracking-wider text-[11px]' }, 'Plan de Pagos y Crédito Hipotecario'),
+                  el('span', { className: 'text-[10px] bg-indigo-900 text-indigo-300 px-2 py-0.5 rounded' }, 'Simulación Sala de Ventas')
+                ),
+
+                // 1. Selector de Pie
+                el('div', null,
+                  el('div', { className: 'flex justify-between text-slate-300 mb-1.5' },
+                    el('span', null, '% Pie Compra:'),
+                    el('strong', { className: 'text-indigo-300 font-mono' }, `${pctPie}% = ${calculosFinancieros.montoPieUF.toFixed(1)} UF`)
+                  ),
+                  el('div', { className: 'grid grid-cols-4 gap-1.5' },
+                    [5, 10, 15, 20].map(p => 
+                      el('button', {
+                        key: p,
+                        type: 'button',
+                        onClick: () => setPctPie(p),
+                        className: `py-1 rounded font-bold transition-all text-xs ${
+                          pctPie === p 
+                            ? 'bg-indigo-600 text-white shadow' 
+                            : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
+                        }`
+                      }, `${p}%`)
+                    )
+                  )
+                ),
+
+                // 2. Parámetros de Cuotas de Pie
+                el('div', { className: 'grid grid-cols-2 gap-2 bg-slate-950/70 p-2 rounded border border-indigo-950' },
+                  el('div', null,
+                    el('span', { className: 'text-[10px] text-slate-400 block mb-1' }, 'Reserva Inicial (UF):'),
+                    el('input', {
+                      type: 'number',
+                      value: montoReservaUF,
+                      onChange: (ev) => setMontoReservaUF(Math.max(0, Number(ev.target.value) || 0)),
+                      className: 'w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs text-white font-mono font-bold'
+                    })
+                  ),
+                  el('div', null,
+                    el('span', { className: 'text-[10px] text-slate-400 block mb-1' }, 'N° Cuotas Mensuales:'),
+                    el('input', {
+                      type: 'number',
+                      min: 1,
+                      max: 48,
+                      value: cuotasPie,
+                      onChange: (ev) => setCuotasPie(Math.max(1, Number(ev.target.value) || 1)),
+                      className: 'w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs text-white font-mono font-bold'
+                    })
+                  )
+                ),
+
+                // Tarjeta de Cuota Mensual de Pie
+                el('div', { className: 'bg-indigo-900/50 p-2.5 rounded border border-indigo-700/60 flex justify-between items-center' },
+                  el('div', null,
+                    el('span', { className: 'text-[10px] text-indigo-300 block font-medium' }, `Cuota Mensual de Pie (${cuotasPie} meses):`),
+                    el('p', { className: 'text-sm font-extrabold text-white mt-0.5 font-mono' }, `${calculosFinancieros.cuotaMensualPieUF.toFixed(2)} UF/mes`)
+                  ),
+                  el('div', { className: 'text-right' },
+                    el('span', { className: 'text-[10px] text-indigo-300 block font-medium' }, 'Equiv. en Pesos:'),
+                    el('p', { className: 'text-xs font-bold text-indigo-200 mt-0.5 font-mono' }, `$ ${calculosFinancieros.cuotaMensualPieCLP.toLocaleString('es-CL')}`)
+                  )
+                ),
+
+                // 3. Proyección Crédito Hipotecario
+                el('div', { className: 'pt-2 border-t border-indigo-900/80 space-y-2' },
+                  el('div', { className: 'flex justify-between items-center text-slate-300' },
+                    el('span', { className: 'text-[11px] font-semibold text-slate-200' }, `Crédito Hipotecario (${100 - pctPie}%):`),
+                    el('strong', { className: 'text-white font-mono' }, `${calculosFinancieros.montoCreditoUF.toFixed(1)} UF`)
+                  ),
+
+                  // Tasa de Mercado Editable y Plazo
+                  el('div', { className: 'grid grid-cols-2 gap-2' },
+                    el('div', null,
+                      el('span', { className: 'text-[10px] text-slate-400 block mb-1' }, 'Tasa Anual Hipot. (%):'),
+                      el('input', {
+                        type: 'number',
+                        step: '0.1',
+                        value: tasaHipotecarioAnual,
+                        onChange: (ev) => setTasaHipotecarioAnual(Math.max(0.1, Number(ev.target.value) || 0.1)),
+                        className: 'w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs text-white font-mono font-bold'
+                      })
+                    ),
+                    el('div', null,
+                      el('span', { className: 'text-[10px] text-slate-400 block mb-1' }, 'Plazo Crédito:'),
+                      el('div', { className: 'grid grid-cols-3 gap-1' },
+                        [20, 25, 30].map(anios => 
+                          el('button', {
+                            key: anios,
+                            type: 'button',
+                            onClick: () => setPlazoCreditoAnios(anios),
+                            className: `py-1 rounded font-bold text-[11px] transition-all ${
+                              plazoCreditoAnios === anios 
+                                ? 'bg-indigo-600 text-white shadow' 
+                                : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
+                            }`
+                          }, `${anios}a`)
+                        )
+                      )
+                    )
+                  ),
+
+                  // Tarjetas Dividendo y Renta Sugerida
+                  el('div', { className: 'grid grid-cols-2 gap-2 mt-1' },
+                    el('div', { className: 'bg-slate-950 p-2.5 rounded border border-slate-800' },
+                      el('span', { className: 'text-[10px] text-slate-400 block' }, 'Dividendo Estimado:'),
+                      el('p', { className: 'text-sm font-black text-emerald-400 mt-0.5 font-mono' }, `${calculosFinancieros.dividendoUF.toFixed(2)} UF`),
+                      el('p', { className: 'text-[10px] text-slate-400 font-mono mt-0.5' }, `$ ${calculosFinancieros.dividendoCLP.toLocaleString('es-CL')}`)
+                    ),
+                    el('div', { className: 'bg-slate-950 p-2.5 rounded border border-slate-800' },
+                      el('span', { className: 'text-[10px] text-slate-400 block' }, 'Renta Sugerida Líquida:'),
+                      el('p', { className: 'text-sm font-black text-amber-400 mt-0.5 font-mono' }, `$ ${calculosFinancieros.rentaSugeridaCLP.toLocaleString('es-CL')}`),
+                      el('p', { className: 'text-[10px] text-slate-500 mt-0.5' }, 'Carga máx. 25%')
+                    )
+                  )
+                )
+              ),
+
+              // Metrajes
               el('div', { className: 'mt-3 bg-slate-950 p-3 rounded-lg border border-slate-800 grid grid-cols-2 gap-3 text-xs' },
                 unidadSeleccionada.superficieUtil !== null ? el('div', null,
                   el('span', { className: 'text-slate-400 block' }, 'Superficie Útil:'),
@@ -901,7 +1052,7 @@
                 })
               ),
 
-              // BOTONERA DE ESTADOS (6 ESTADOS)
+              // Botonera de Estados
               el('div', { className: 'mt-3 grid grid-cols-3 gap-2 text-[11px]' },
                 [
                   { id: 'disponible', label: 'Disponible', color: 'bg-emerald-600 text-white' },
@@ -924,6 +1075,7 @@
               )
             ),
 
+            // Formulario de Lead y Envío
             el('form', { onSubmit: guardarLeadYDescargarPDF, className: 'space-y-3' },
               el('h3', { className: 'text-xs font-bold text-slate-200 uppercase tracking-wider' }, 'Ficha de Prospecto y Envío Comercial'),
               el('div', null,
@@ -990,7 +1142,7 @@
                   value: formLead.observaciones,
                   onChange: ev => setFormLead({ ...formLead, observaciones: ev.target.value }),
                   className: 'w-full bg-slate-950 border border-slate-800 rounded px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500',
-                  placeholder: 'Detalle de segundo estacionamiento, notas de pago...'
+                  placeholder: 'Plan de pagos acordado, banco pre-aprobado...'
                 })
               ),
               el('button', {
@@ -1002,67 +1154,86 @@
           ) : el('div', { className: 'flex-1 flex flex-col items-center justify-center p-8 text-center text-slate-500' },
             el('p', { className: 'text-base font-semibold text-slate-300' }, 'Sin Selección'),
             el('p', { className: 'text-xs mt-1.5 leading-relaxed text-slate-400' },
-              'Haz clic sobre un departamento, estacionamiento o bodega en el plano para ver especificaciones y gestionar su ficha comercial.'
+              'Haz clic sobre un departamento, estacionamiento o bodega en el plano para ver especificaciones y gestionar su simulación financiera.'
             )
           )
         ),
 
-        // Plantilla Imprimible A4 Oculta
+        // PLANTILLA IMPRIMIBLE A4 OCULTA CON BLOQUE FINANCIERO Y DIVIDENDO
         unidadSeleccionada && el('div', { style: { position: 'fixed', left: '-9999px', top: '0', zIndex: -100 } },
-          el('div', { id: 'plantilla-ficha-pdf', style: { width: '190mm', padding: '10mm', fontFamily: 'Arial, sans-serif', color: '#111827', backgroundColor: '#ffffff' } },
-            el('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #4f46e5', paddingBottom: '8px' } },
+          el('div', { id: 'plantilla-ficha-pdf', style: { width: '190mm', padding: '9mm', fontFamily: 'Arial, sans-serif', color: '#111827', backgroundColor: '#ffffff' } },
+            el('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #4f46e5', paddingBottom: '6px' } },
               el('div', null,
-                el('h1', { style: { fontSize: '18px', fontWeight: 'bold', margin: 0, color: '#111827' } }, 'HORIZONTE NORTE — HUECHURABA'),
-                el('p', { style: { fontSize: '10px', color: '#6b7280', margin: '3px 0 0 0' } }, 'Ficha Técnica de Cotización Comercial')
+                el('h1', { style: { fontSize: '17px', fontWeight: 'bold', margin: 0, color: '#111827' } }, 'HORIZONTE NORTE — HUECHURABA'),
+                el('p', { style: { fontSize: '9.5px', color: '#6b7280', margin: '2px 0 0 0' } }, 'Ficha Técnica y Simulación de Financiamiento')
               ),
               el('div', { style: { textAlign: 'right' } },
-                el('span', { style: { fontSize: '16px', fontWeight: 'bold', color: '#4f46e5' } }, unidadSeleccionada.id),
-                el('p', { style: { fontSize: '9px', color: '#6b7280', margin: '2px 0 0 0' } }, `Fecha: ${new Date().toLocaleDateString('es-CL')}`)
+                el('span', { style: { fontSize: '15px', fontWeight: 'bold', color: '#4f46e5' } }, unidadSeleccionada.id),
+                el('p', { style: { fontSize: '8.5px', color: '#6b7280', margin: '2px 0 0 0' } }, `Fecha: ${new Date().toLocaleDateString('es-CL')}`)
               )
             ),
 
-            el('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginTop: '12px' } },
+            el('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '10px' } },
               el('div', { style: { backgroundColor: '#f9fafb', padding: '8px 10px', borderRadius: '4px', border: '1px solid #e5e7eb' } },
-                el('h3', { style: { fontSize: '10px', fontWeight: 'bold', margin: '0 0 4px 0', color: '#4f46e5', textTransform: 'uppercase' } }, 'Datos del Prospecto'),
-                el('p', { style: { fontSize: '10px', margin: '2px 0' } }, el('strong', null, 'Nombre: '), formLead.nombre || 'No registrado'),
-                el('p', { style: { fontSize: '10px', margin: '2px 0' } }, el('strong', null, 'RUT: '), formLead.rut || 'No registrado'),
-                el('p', { style: { fontSize: '10px', margin: '2px 0' } }, el('strong', null, 'Teléfono: '), formLead.telefono || 'No registrado'),
-                el('p', { style: { fontSize: '10px', margin: '2px 0' } }, el('strong', null, 'Email: '), formLead.email || 'No registrado')
+                el('h3', { style: { fontSize: '9.5px', fontWeight: 'bold', margin: '0 0 4px 0', color: '#4f46e5', textTransform: 'uppercase' } }, 'Datos del Prospecto'),
+                el('p', { style: { fontSize: '9.5px', margin: '2px 0' } }, el('strong', null, 'Nombre: '), formLead.nombre || 'No registrado'),
+                el('p', { style: { fontSize: '9.5px', margin: '2px 0' } }, el('strong', null, 'RUT: '), formLead.rut || 'No registrado'),
+                el('p', { style: { fontSize: '9.5px', margin: '2px 0' } }, el('strong', null, 'Teléfono: '), formLead.telefono || 'No registrado'),
+                el('p', { style: { fontSize: '9.5px', margin: '2px 0' } }, el('strong', null, 'Email: '), formLead.email || 'No registrado')
               ),
               el('div', { style: { backgroundColor: '#f9fafb', padding: '8px 10px', borderRadius: '4px', border: '1px solid #e5e7eb' } },
-                el('h3', { style: { fontSize: '10px', fontWeight: 'bold', margin: '0 0 4px 0', color: '#4f46e5', textTransform: 'uppercase' } }, 'Condiciones Comerciales'),
-                el('p', { style: { fontSize: '10px', margin: '2px 0' } }, el('strong', null, 'Tipología: '), unidadSeleccionada.nombreTipologia || unidadSeleccionada.tipo),
-                el('p', { style: { fontSize: '10px', margin: '2px 0' } }, el('strong', null, 'Superficie Útil: '), `${unidadSeleccionada.superficieUtil} m²`),
-                unidadSeleccionada.metrajeExterior !== undefined && el('p', { style: { fontSize: '10px', margin: '2px 0' } },
+                el('h3', { style: { fontSize: '9.5px', fontWeight: 'bold', margin: '0 0 4px 0', color: '#4f46e5', textTransform: 'uppercase' } }, 'Condiciones Comerciales'),
+                el('p', { style: { fontSize: '9.5px', margin: '2px 0' } }, el('strong', null, 'Tipología: '), unidadSeleccionada.nombreTipologia || unidadSeleccionada.tipo),
+                el('p', { style: { fontSize: '9.5px', margin: '2px 0' } }, el('strong', null, 'Superficie Útil: '), `${unidadSeleccionada.superficieUtil} m²`),
+                unidadSeleccionada.metrajeExterior !== undefined && el('p', { style: { fontSize: '9.5px', margin: '2px 0' } },
                   el('strong', null, unidadSeleccionada.tipo === 'Duplex Garden' ? 'Patio: ' : 'Azotea: '),
                   `${unidadSeleccionada.metrajeExterior} m²`
                 ),
-                el('div', { style: { borderTop: '1px solid #e5e7eb', marginTop: '4px', paddingTop: '4px', fontSize: '10px' } },
-                  el('p', { style: { margin: '1px 0' } }, `• Depto: ${unidadSeleccionada.precioUF.toLocaleString('es-CL')} UF`),
-                  el('p', { style: { margin: '1px 0' } }, `• Estacionamiento 1 (${unidadSeleccionada.estacionamientoAsignadoId}): ${PRECIO_ESTACIONAMIENTO} UF`),
+                el('div', { style: { borderTop: '1px solid #e5e7eb', marginTop: '3px', paddingTop: '3px', fontSize: '9px' } },
+                  el('p', { style: { margin: '1px 0' } }, `• Depto: ${unidadSeleccionada.precioUF.toLocaleString('es-CL')} UF | Est. 1 (${unidadSeleccionada.estacionamientoAsignadoId}): ${PRECIO_ESTACIONAMIENTO} UF`),
                   unidadSeleccionada.segundoEstacionamientoId && el('p', { style: { margin: '1px 0', color: '#4f46e5', fontWeight: '600' } }, `• Estacionamiento 2 (${unidadSeleccionada.segundoEstacionamientoId}): ${PRECIO_ESTACIONAMIENTO} UF`),
                   el('p', { style: { margin: '1px 0' } }, `• Bodega (${unidadSeleccionada.bodegaAsignadaId}): ${PRECIO_BODEGA} UF`),
-                  el('p', { style: { margin: '3px 0 0 0', fontWeight: 'bold', color: '#4f46e5', fontSize: '11px' } }, `Total Inversión: ${totalesComerciales.total.toLocaleString('es-CL')} UF`),
-                  el('p', { style: { margin: '1px 0 0 0', color: '#6b7280', fontSize: '9.5px' } }, `Equivalente aprox: $ ${totalesComerciales.totalCLP.toLocaleString('es-CL')} CLP (UF: $${valorUF.toLocaleString('es-CL')})`)
+                  el('p', { style: { margin: '2px 0 0 0', fontWeight: 'bold', color: '#4f46e5', fontSize: '10.5px' } }, `Total Inversión: ${calculosFinancieros.total.toLocaleString('es-CL')} UF ($ ${calculosFinancieros.totalCLP.toLocaleString('es-CL')} CLP)`)
                 )
               )
             ),
 
-            el('div', { style: { marginTop: '14px', textAlign: 'center' } },
-              el('h3', { style: { fontSize: '10px', fontWeight: 'bold', margin: '0 0 6px 0', color: '#374151', textAlign: 'left', textTransform: 'uppercase' } },
+            // Recuadro Financiero Oficial en PDF
+            el('div', { style: { marginTop: '10px', backgroundColor: '#eef2ff', padding: '8px 10px', borderRadius: '4px', border: '1px solid #c7d2fe' } },
+              el('h3', { style: { fontSize: '9.5px', fontWeight: 'bold', margin: '0 0 5px 0', color: '#3730a3', textTransform: 'uppercase' } },
+                'Estructura de Financiamiento y Crédito Hipotecario'
+              ),
+              el('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '9px' } },
+                el('div', { style: { borderRight: '1px solid #c7d2fe', paddingRight: '8px' } },
+                  el('p', { style: { margin: '1px 0', fontWeight: 'bold', color: '#1e1b4b' } }, `Plan de Pie: ${pctPie}% (${calculosFinancieros.montoPieUF.toFixed(1)} UF)`),
+                  el('p', { style: { margin: '1px 0' } }, `• Reserva Inicial: ${montoReservaUF} UF`),
+                  el('p', { style: { margin: '1px 0' } }, `• Saldo Pie en Cuotas: ${calculosFinancieros.saldoPieUF.toFixed(1)} UF`),
+                  el('p', { style: { margin: '3px 0 0 0', fontWeight: 'bold', color: '#4338ca' } }, `Cuota Mensual (${cuotasPie} meses): ${calculosFinancieros.cuotaMensualPieUF.toFixed(2)} UF/mes (~$ ${calculosFinancieros.cuotaMensualPieCLP.toLocaleString('es-CL')})`)
+                ),
+                el('div', { style: { paddingLeft: '4px' } },
+                  el('p', { style: { margin: '1px 0', fontWeight: 'bold', color: '#1e1b4b' } }, `Crédito Hipotecario: ${100 - pctPie}% (${calculosFinancieros.montoCreditoUF.toFixed(1)} UF)`),
+                  el('p', { style: { margin: '1px 0' } }, `• Plazo Crédito: ${plazoCreditoAnios} años | Tasa Ref: ${tasaHipotecarioAnual}% anual`),
+                  el('p', { style: { margin: '1px 0', fontWeight: 'bold', color: '#047857' } }, `Dividendo Estimado: ${calculosFinancieros.dividendoUF.toFixed(2)} UF/mes (~$ ${calculosFinancieros.dividendoCLP.toLocaleString('es-CL')})`),
+                  el('p', { style: { margin: '1px 0', fontWeight: 'bold', color: '#b45309' } }, `Renta Líquida Sugerida: $ ${calculosFinancieros.rentaSugeridaCLP.toLocaleString('es-CL')} CLP`)
+                )
+              )
+            ),
+
+            el('div', { style: { marginTop: '10px', textAlign: 'center' } },
+              el('h3', { style: { fontSize: '9.5px', fontWeight: 'bold', margin: '0 0 5px 0', color: '#374151', textAlign: 'left', textTransform: 'uppercase' } },
                 `Distribución Arquitectónica (${unidadSeleccionada.nombreTipologia})`
               ),
               dataUrlImagen ? el('img', {
                 src: dataUrlImagen,
                 alt: 'Tipología Arquitectónica',
-                style: { width: '100%', maxHeight: '135mm', objectFit: 'contain', border: '1px solid #e5e7eb', borderRadius: '4px', display: 'block', margin: '0 auto' }
-              }) : el('div', { style: { padding: '30px', border: '1px dashed #d1d5db', borderRadius: '4px', color: '#9ca3af', fontSize: '11px' } },
+                style: { width: '100%', maxHeight: '115mm', objectFit: 'contain', border: '1px solid #e5e7eb', borderRadius: '4px', display: 'block', margin: '0 auto' }
+              }) : el('div', { style: { padding: '25px', border: '1px dashed #d1d5db', borderRadius: '4px', color: '#9ca3af', fontSize: '10px' } },
                 'Lámina técnica en proceso de asignación.'
               )
             ),
 
-            el('div', { style: { marginTop: '10px', borderTop: '1px solid #e5e7eb', paddingTop: '4px', fontSize: '7.5px', color: '#9ca3af', textAlign: 'justify' } },
-              'Las imágenes contenidas en este material son ilustrativas y las ambientaciones son referenciales. Superficies y medidas aproximadas según Ley 19.472. Las características y precios del proyecto pueden sufrir variaciones durante su desarrollo comercial sin previo aviso. Valores en pesos referenciales al valor UF del día.'
+            el('div', { style: { marginTop: '8px', borderTop: '1px solid #e5e7eb', paddingTop: '4px', fontSize: '7px', color: '#9ca3af', textAlign: 'justify' } },
+              'Simulación de carácter referencial según valor UF del día ($' + valorUF.toLocaleString('es-CL') + '). Dividendos calculados bajo sistema francés de amortización con tasa referencial de mercado; no incluye seguros obligatorios de desgravamen ni sismo/incendio. La aprobación final, tasa definitiva y exigencias de renta dependen exclusivamente de la evaluación comercial del banco o mutuaria acreedora.'
             )
           )
         )
