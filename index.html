@@ -19,69 +19,162 @@
   <div id="root"></div>
 
   <script>
-    const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz8NessLqzrcgWYQlNticXCCgFHAFFTuW9CnE91h2RHCGf_Mfi3fT9Uwp7TLSGfxiA/exec";
+    const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxFNa67xhJXT9pJWpzQlm_PDQI-R4KEpYZz6zJsDlAmbXnBATxG_LjrF0zQv4E3OrXm/exec";
 
-    const PRECIO_ESTACIONAMIENTO = 350;
-    const PRECIO_BODEGA = 90;
-
-    const CONFIG_PRECIOS = {
-      duplexP1Base: 4850,
-      duplexP1Incremento: 35,
-      duplexP4Base: 5350,
-      duplexP4Incremento: 40,
-      estacionamiento: PRECIO_ESTACIONAMIENTO,
-      bodega: PRECIO_BODEGA
+    // DATOS EXACTOS HOJA 1: SUPERFICIES Y VALORES DEPARTAMENTOS
+    const DATOS_DEPTOS_EXCEL = {
+      1:  { supUtil: 65.05, supNoUtil: 38.88, precioUF: 5370 },
+      2:  { supUtil: 63.92, supNoUtil: 14.94, precioUF: 4350 },
+      3:  { supUtil: 64.03, supNoUtil: 20.75, precioUF: 4350 },
+      4:  { supUtil: 64.48, supNoUtil: 22.52, precioUF: 4350 },
+      5:  { supUtil: 63.31, supNoUtil: 20.15, precioUF: 4855 },
+      6:  { supUtil: 63.92, supNoUtil: 22.28, precioUF: 4260 },
+      7:  { supUtil: 63.92, supNoUtil: 19.66, precioUF: 4887 },
+      8:  { supUtil: 63.94, supNoUtil: 19.58, precioUF: 4887 },
+      9:  { supUtil: 65.22, supNoUtil: 19.95, precioUF: 4984 },
+      10: { supUtil: 65.22, supNoUtil: 19.95, precioUF: 4984 },
+      11: { supUtil: 63.94, supNoUtil: 19.58, precioUF: 4887 },
+      12: { supUtil: 63.96, supNoUtil: 19.58, precioUF: 4888 },
+      13: { supUtil: 63.96, supNoUtil: 19.58, precioUF: 4888 },
+      14: { supUtil: 63.96, supNoUtil: 16.82, precioUF: 4830 },
+      15: { supUtil: 63.96, supNoUtil: 18.02, precioUF: 4856 },
+      16: { supUtil: 63.96, supNoUtil: 15.52, precioUF: 4803 },
+      17: { supUtil: 68.45, supNoUtil: 38.61, precioUF: 5602 },
+      18: { supUtil: 67.48, supNoUtil: 20.94, precioUF: 5163 },
+      19: { supUtil: 65.20, supNoUtil: 20.41, precioUF: 4993 },
+      20: { supUtil: 66.55, supNoUtil: 20.47, precioUF: 5088 },
+      21: { supUtil: 66.94, supNoUtil: 20.47, precioUF: 5116 },
+      22: { supUtil: 66.21, supNoUtil: 20.47, precioUF: 5065 },
+      23: { supUtil: 66.55, supNoUtil: 20.47, precioUF: 5088 },
+      24: { supUtil: 66.55, supNoUtil: 20.47, precioUF: 5088 },
+      25: { supUtil: 65.70, supNoUtil: 20.47, precioUF: 5029 },
+      26: { supUtil: 67.01, supNoUtil: 20.86, precioUF: 5129 },
+      27: { supUtil: 67.02, supNoUtil: 20.86, precioUF: 5129 },
+      28: { supUtil: 65.69, supNoUtil: 20.47, precioUF: 5028 },
+      29: { supUtil: 65.71, supNoUtil: 20.47, precioUF: 5030 },
+      30: { supUtil: 65.71, supNoUtil: 20.47, precioUF: 5030 },
+      31: { supUtil: 65.71, supNoUtil: 20.48, precioUF: 5030 },
+      32: { supUtil: 65.71, supNoUtil: 20.48, precioUF: 5030 },
+      33: { supUtil: 65.71, supNoUtil: 20.48, precioUF: 5030 },
+      34: { supUtil: 70.87, supNoUtil: 21.50, precioUF: 5412 }
     };
 
-    const ESTACIONAMIENTOS_LIBRES = [1, 2, 3, 4, 5, 6, 7, 25, 26, 27, 28, 30, 32, 36, 37, 39, 51];
-
-    const ASIGNACIONES_MASTER = {
-      1:  { est: 29, bod: 1 },
-      2:  { est: 31, bod: 2 },
-      3:  { est: 33, bod: 3 },
-      4:  { est: 34, bod: 4 },
-      5:  { est: 35, bod: 5 },
-      6:  { est: 38, bod: 6 },
-      7:  { est: 40, bod: 7 },
-      8:  { est: 41, bod: 8 },
-      9:  { est: 42, bod: 9 },
-      10: { est: 43, bod: 10 },
-      11: { est: 44, bod: 11 },
-      12: { est: 45, bod: 12 },
-      13: { est: 46, bod: 13 },
-      14: { est: 47, bod: 14 },
-      15: { est: 48, bod: 15 },
-      16: { est: 49, bod: 16 },
-      17: { est: 50, bod: 17 },
-      18: { est: 24, bod: 18 },
-      19: { est: 23, bod: 19 },
-      20: { est: 22, bod: 20 },
-      21: { est: 21, bod: 21 },
-      22: { est: 20, bod: 22 },
-      23: { est: 19, bod: 23 },
-      24: { est: 18, bod: 24 },
-      25: { est: 17, bod: 25 },
-      26: { est: 16, bod: 26 },
-      27: { est: 15, bod: 27 },
-      28: { est: 14, bod: 28 },
-      29: { est: 13, bod: 29 },
-      30: { est: 12, bod: 30 },
-      31: { est: 11, bod: 31 },
-      32: { est: 10, bod: 32 },
-      33: { est: 9,  bod: 33 },
-      34: { est: 8,  bod: 34 }
+    // DATOS EXACTOS HOJA 2: BODEGAS CON ESCALA PROGRESIVA (1.27 m² = 90 UF -> 4.54 m² = 150 UF)
+    const DATOS_BODEGAS_EXCEL = {
+      1:  { sup: 2.25, precioUF: 108 },
+      2:  { sup: 2.42, precioUF: 111 },
+      3:  { sup: 1.64, precioUF: 97 },
+      4:  { sup: 1.64, precioUF: 97 },
+      5:  { sup: 1.64, precioUF: 97 },
+      6:  { sup: 1.64, precioUF: 97 },
+      7:  { sup: 1.64, precioUF: 97 },
+      8:  { sup: 1.64, precioUF: 97 },
+      9:  { sup: 1.64, precioUF: 97 },
+      10: { sup: 1.64, precioUF: 97 },
+      11: { sup: 2.95, precioUF: 121 },
+      12: { sup: 1.61, precioUF: 96 },
+      13: { sup: 1.61, precioUF: 96 },
+      14: { sup: 1.61, precioUF: 96 },
+      15: { sup: 1.61, precioUF: 96 },
+      16: { sup: 1.61, precioUF: 96 },
+      17: { sup: 1.61, precioUF: 96 },
+      18: { sup: 1.61, precioUF: 96 },
+      19: { sup: 1.61, precioUF: 96 },
+      20: { sup: 1.61, precioUF: 96 },
+      21: { sup: 1.77, precioUF: 99 },
+      22: { sup: 1.57, precioUF: 96 },
+      23: { sup: 1.57, precioUF: 96 },
+      24: { sup: 1.57, precioUF: 96 },
+      25: { sup: 1.49, precioUF: 94 },
+      26: { sup: 1.69, precioUF: 98 },
+      27: { sup: 1.69, precioUF: 98 },
+      28: { sup: 1.69, precioUF: 98 },
+      29: { sup: 1.45, precioUF: 93 },
+      30: { sup: 1.45, precioUF: 93 },
+      31: { sup: 1.55, precioUF: 95 },
+      32: { sup: 1.57, precioUF: 96 },
+      33: { sup: 1.27, precioUF: 90 },
+      34: { sup: 4.54, precioUF: 150 }
     };
+
+    // DATOS ESTACIONAMIENTOS:
+    // - Asignados a deptos (1ra unidad): todos a 350 UF
+    // - Disponibles (2da unidad): Techados = 400 UF | Semitechados = 375 UF | Descubiertos = 350 UF
+    const DATOS_ESTACIONAMIENTOS_EXCEL = {
+      1:  { sector: 'Oriente',  cubierta: 'Descubierto',  precioDif: 350, deptoAsoc: 34 },
+      2:  { sector: 'Oriente',  cubierta: 'Descubierto',  precioDif: 350, deptoAsoc: 33 },
+      3:  { sector: 'Oriente',  cubierta: 'Descubierto',  precioDif: 350, deptoAsoc: null },
+      4:  { sector: 'Oriente',  cubierta: 'Descubierto',  precioDif: 350, deptoAsoc: 32 },
+      5:  { sector: 'Oriente',  cubierta: 'Descubierto',  precioDif: 350, deptoAsoc: 31 },
+      6:  { sector: 'Oriente',  cubierta: 'Descubierto',  precioDif: 350, deptoAsoc: null },
+      7:  { sector: 'Oriente',  cubierta: 'Descubierto',  precioDif: 350, deptoAsoc: 30 },
+      8:  { sector: 'Oriente',  cubierta: 'Descubierto',  precioDif: 350, deptoAsoc: 29 },
+      9:  { sector: 'Oriente',  cubierta: 'Descubierto',  precioDif: 350, deptoAsoc: null },
+      10: { sector: 'Oriente',  cubierta: 'Descubierto',  precioDif: 350, deptoAsoc: 28 },
+      11: { sector: 'Oriente',  cubierta: 'Descubierto',  precioDif: 350, deptoAsoc: 27 },
+      12: { sector: 'Oriente',  cubierta: 'Descubierto',  precioDif: 350, deptoAsoc: 26 },
+      13: { sector: 'Oriente',  cubierta: 'Descubierto',  precioDif: 350, deptoAsoc: 25 },
+      14: { sector: 'Oriente',  cubierta: 'Descubierto',  precioDif: 350, deptoAsoc: null },
+      15: { sector: 'Oriente',  cubierta: 'Descubierto',  precioDif: 350, deptoAsoc: 24 },
+      16: { sector: 'Oriente',  cubierta: 'Descubierto',  precioDif: 350, deptoAsoc: 23 },
+      17: { sector: 'Oriente',  cubierta: 'Descubierto',  precioDif: 350, deptoAsoc: null },
+      18: { sector: 'Oriente',  cubierta: 'Descubierto',  precioDif: 350, deptoAsoc: 22 },
+      19: { sector: 'Oriente',  cubierta: 'Descubierto',  precioDif: 350, deptoAsoc: 21 },
+      20: { sector: 'Oriente',  cubierta: 'Descubierto',  precioDif: 350, deptoAsoc: null },
+      21: { sector: 'Oriente',  cubierta: 'Descubierto',  precioDif: 350, deptoAsoc: 20 },
+      22: { sector: 'Oriente',  cubierta: 'Descubierto',  precioDif: 350, deptoAsoc: 19 },
+      23: { sector: 'Oriente',  cubierta: 'Descubierto',  precioDif: 350, deptoAsoc: null },
+      24: { sector: 'Oriente',  cubierta: 'Descubierto',  precioDif: 350, deptoAsoc: 18 },
+      25: { sector: 'Oriente',  cubierta: 'Descubierto',  precioDif: 350, deptoAsoc: null },
+      26: { sector: 'Oriente',  cubierta: 'Descubierto',  precioDif: 350, deptoAsoc: null },
+      27: { sector: 'Oriente',  cubierta: 'Descubierto',  precioDif: 350, deptoAsoc: null },
+      28: { sector: 'Oriente',  cubierta: 'Descubierto',  precioDif: 350, deptoAsoc: null },
+      29: { sector: 'Poniente', cubierta: 'Techado',      precioDif: 350, deptoAsoc: 1 },
+      30: { sector: 'Poniente', cubierta: 'Techado',      precioDif: 350, deptoAsoc: 2 },
+      31: { sector: 'Poniente', cubierta: 'Techado',      precioDif: 400, deptoAsoc: null },
+      32: { sector: 'Poniente', cubierta: 'Techado',      precioDif: 350, deptoAsoc: 3 },
+      33: { sector: 'Poniente', cubierta: 'Techado',      precioDif: 350, deptoAsoc: 4 },
+      34: { sector: 'Poniente', cubierta: 'Techado',      precioDif: 400, deptoAsoc: null },
+      35: { sector: 'Poniente', cubierta: 'Techado',      precioDif: 350, deptoAsoc: 5 },
+      36: { sector: 'Poniente', cubierta: 'Semitechado',  precioDif: 350, deptoAsoc: 6 },
+      37: { sector: 'Poniente', cubierta: 'Semitechado',  precioDif: 375, deptoAsoc: null },
+      38: { sector: 'Poniente', cubierta: 'Semitechado',  precioDif: 350, deptoAsoc: 7 },
+      39: { sector: 'Poniente', cubierta: 'Semitechado',  precioDif: 350, deptoAsoc: 8 },
+      40: { sector: 'Poniente', cubierta: 'Semitechado',  precioDif: 375, deptoAsoc: null },
+      41: { sector: 'Poniente', cubierta: 'Semitechado',  precioDif: 350, deptoAsoc: 9 },
+      42: { sector: 'Poniente', cubierta: 'Descubierto',  precioDif: 350, deptoAsoc: 10 },
+      43: { sector: 'Poniente', cubierta: 'Descubierto',  precioDif: 350, deptoAsoc: 11 },
+      44: { sector: 'Poniente', cubierta: 'Descubierto',  precioDif: 350, deptoAsoc: 12 },
+      45: { sector: 'Poniente', cubierta: 'Descubierto',  precioDif: 350, deptoAsoc: null },
+      46: { sector: 'Poniente', cubierta: 'Descubierto',  precioDif: 350, deptoAsoc: 13 },
+      47: { sector: 'Poniente', cubierta: 'Descubierto',  precioDif: 350, deptoAsoc: 14 },
+      48: { sector: 'Poniente', cubierta: 'Descubierto',  precioDif: 350, deptoAsoc: 17 },
+      49: { sector: 'Poniente', cubierta: 'Descubierto',  precioDif: 350, deptoAsoc: 15 },
+      50: { sector: 'Poniente', cubierta: 'Descubierto',  precioDif: 350, deptoAsoc: 16 }
+    };
+
+    // Estacionamientos de libre disposición (16 unidades según Hoja 2)
+    const ESTACIONAMIENTOS_LIBRES = Object.keys(DATOS_ESTACIONAMIENTOS_EXCEL)
+      .map(Number)
+      .filter(num => DATOS_ESTACIONAMIENTOS_EXCEL[num].deptoAsoc === null);
+
+    // Mapa inverso: Departamento -> Número de Estacionamiento asignado
+    const ESTACIONAMIENTO_POR_DEPTO = {};
+    Object.keys(DATOS_ESTACIONAMIENTOS_EXCEL).forEach(num => {
+      const d = DATOS_ESTACIONAMIENTOS_EXCEL[num].deptoAsoc;
+      if (d) ESTACIONAMIENTO_POR_DEPTO[d] = Number(num);
+    });
 
     const MAPEO_TIPOLOGIAS = {
-      1: { nombre: 'GARDEN ESQUINA NORTE', img: 'tipologias/garden-esquina-norte.png' },
-      2: { nombre: 'GARDEN CENTRAL NORTE', img: 'tipologias/garden-central-norte.png' },
-      3: { nombre: 'GARDEN CENTRAL NORTE', img: 'tipologias/garden-central-norte.png' },
-      4: { nombre: 'GARDEN CENTRAL NORTE', img: 'tipologias/garden-central-norte.png' },
-      5: { nombre: 'GARDEN CENTRAL NORTE', img: 'tipologias/garden-central-norte.png' },
-      6: { nombre: 'GARDEN CENTRAL NORTE', img: 'tipologias/garden-central-norte.png' },
-      7: { nombre: 'GARDEN CENTRAL NORTE', img: 'tipologias/garden-central-norte.png' },
-      8: { nombre: 'GARDEN CENTRAL NORTE', img: 'tipologias/garden-central-norte.png' },
-      9: { nombre: 'GARDEN ESQUINA CENTRAL NORTE', img: 'tipologias/garden-esquina-central-norte.png' },
+      1:  { nombre: 'GARDEN ESQUINA NORTE', img: 'tipologias/garden-esquina-norte.png' },
+      2:  { nombre: 'GARDEN CENTRAL NORTE', img: 'tipologias/garden-central-norte.png' },
+      3:  { nombre: 'GARDEN CENTRAL NORTE', img: 'tipologias/garden-central-norte.png' },
+      4:  { nombre: 'GARDEN CENTRAL NORTE', img: 'tipologias/garden-central-norte.png' },
+      5:  { nombre: 'GARDEN CENTRAL NORTE', img: 'tipologias/garden-central-norte.png' },
+      6:  { nombre: 'GARDEN CENTRAL NORTE', img: 'tipologias/garden-central-norte.png' },
+      7:  { nombre: 'GARDEN CENTRAL NORTE', img: 'tipologias/garden-central-norte.png' },
+      8:  { nombre: 'GARDEN CENTRAL NORTE', img: 'tipologias/garden-central-norte.png' },
+      9:  { nombre: 'GARDEN ESQUINA CENTRAL NORTE', img: 'tipologias/garden-esquina-central-norte.png' },
       10: { nombre: 'GARDEN ESQUINA CENTRAL SUR', img: 'tipologias/garden-esquina-central-sur.png' },
       11: { nombre: 'GARDEN CENTRAL SUR', img: 'tipologias/garden-central-sur.png' },
       12: { nombre: 'GARDEN CENTRAL SUR', img: 'tipologias/garden-central-sur.png' },
@@ -89,7 +182,7 @@
       14: { nombre: 'GARDEN CENTRAL SUR', img: 'tipologias/garden-central-sur.png' },
       15: { nombre: 'GARDEN CENTRAL SUR', img: 'tipologias/garden-central-sur.png' },
       16: { nombre: 'GARDEN CENTRAL SUR', img: 'tipologias/garden-central-sur.png' },
-      17: { nombre: 'GARDEN (PENDIENTE ASIGNACIÓN)', img: null },
+      17: { nombre: 'GARDEN ESQUINA SUR', img: null },
 
       18: { nombre: 'ROOFTOP ESQUINA NORTE', img: 'tipologias/rooftop-esquina-norte.png' },
       19: { nombre: 'ROOFTOP CENTRAL NORTE', img: 'tipologias/rooftop-central-norte.png' },
@@ -107,70 +200,77 @@
       31: { nombre: 'ROOFTOP CENTRAL SUR', img: 'tipologias/rooftop-central-sur.png' },
       32: { nombre: 'ROOFTOP CENTRAL SUR', img: 'tipologias/rooftop-central-sur.png' },
       33: { nombre: 'ROOFTOP CENTRAL SUR', img: 'tipologias/rooftop-central-sur.png' },
-      34: { nombre: 'ROOFTOP (PENDIENTE ASIGNACIÓN)', img: null }
+      34: { nombre: 'ROOFTOP ESQUINA SUR', img: null }
     };
 
     function generarInventarioInicial() {
       const unidades = [];
 
+      // 1. Departamentos 1 al 17 (Duplex Garden)
       for (let i = 1; i <= 17; i++) {
         const xBase = 80 + (i - 1) * 66;
-        const supUtil = i === 17 ? 68.0 : 65.0;
+        const datosExcel = DATOS_DEPTOS_EXCEL[i];
         const tipologia = MAPEO_TIPOLOGIAS[i];
-        const asig = ASIGNACIONES_MASTER[i] || {};
+        const estNum = ESTACIONAMIENTO_POR_DEPTO[i];
         unidades.push({
           id: 'U-' + String(i).padStart(2, '0'),
           numero: i,
           tipo: 'Duplex Garden',
           nombreTipologia: tipologia ? tipologia.nombre : 'Duplex Garden',
           imgTipologia: tipologia ? tipologia.img : null,
-          nivel: 'Planta 1',
-          superficieUtil: supUtil,
-          metrajeExterior: 25.0,
-          precioUF: CONFIG_PRECIOS.duplexP1Base + (i * CONFIG_PRECIOS.duplexP1Incremento),
-          estacionamientoAsignadoId: asig.est ? 'EST-' + String(asig.est).padStart(2, '0') : null,
+          nivel: 'Planta 1 - 2',
+          superficieUtil: datosExcel.supUtil,
+          metrajeExterior: datosExcel.supNoUtil,
+          precioUF: datosExcel.precioUF,
+          estacionamientoAsignadoId: estNum ? 'EST-' + String(estNum).padStart(2, '0') : null,
           segundoEstacionamientoId: null,
-          bodegaAsignadaId: asig.bod ? 'BOD-' + String(asig.bod).padStart(2, '0') : null,
+          bodegaAsignadaId: 'BOD-' + String(i).padStart(2, '0'),
           estado: 'disponible',
           polygonCoords: `${xBase},110 ${xBase + 58},116 ${xBase + 58},300 ${xBase},295`
         });
       }
 
+      // 2. Departamentos 18 al 34 (Duplex Rooftop)
       for (let i = 18; i <= 34; i++) {
         const idx = i - 18;
         const xBase = 80 + idx * 66;
-        const supUtil = i === 34 ? 68.0 : 65.0;
+        const datosExcel = DATOS_DEPTOS_EXCEL[i];
         const tipologia = MAPEO_TIPOLOGIAS[i];
-        const asig = ASIGNACIONES_MASTER[i] || {};
+        const estNum = ESTACIONAMIENTO_POR_DEPTO[i];
         unidades.push({
           id: 'U-' + String(i).padStart(2, '0'),
           numero: i,
           tipo: 'Duplex Rooftop',
           nombreTipologia: tipologia ? tipologia.nombre : 'Duplex Rooftop',
           imgTipologia: tipologia ? tipologia.img : null,
-          nivel: 'Planta 4',
-          superficieUtil: supUtil,
-          metrajeExterior: 16.0,
-          precioUF: CONFIG_PRECIOS.duplexP4Base + (idx * CONFIG_PRECIOS.duplexP4Incremento),
-          estacionamientoAsignadoId: asig.est ? 'EST-' + String(asig.est).padStart(2, '0') : null,
+          nivel: 'Planta 3 - 4',
+          superficieUtil: datosExcel.supUtil,
+          metrajeExterior: datosExcel.supNoUtil,
+          precioUF: datosExcel.precioUF,
+          estacionamientoAsignadoId: estNum ? 'EST-' + String(estNum).padStart(2, '0') : null,
           segundoEstacionamientoId: null,
-          bodegaAsignadaId: asig.bod ? 'BOD-' + String(asig.bod).padStart(2, '0') : null,
+          bodegaAsignadaId: 'BOD-' + String(i).padStart(2, '0'),
           estado: 'disponible',
           polygonCoords: `${xBase},100 ${xBase + 58},106 ${xBase + 58},290 ${xBase},285`
         });
       }
 
+      // 3. Estacionamientos 01 al 50
       const filaSuperiorNums = [25,24,23,22,21,20,19,18,17,16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1];
       filaSuperiorNums.forEach((num, index) => {
         const xSlot = 50 + index * 47;
         const ySlot = 45;
+        const info = DATOS_ESTACIONAMIENTOS_EXCEL[num];
         unidades.push({
           id: 'EST-' + String(num).padStart(2, '0'),
           numero: num,
           tipo: 'Estacionamiento',
+          sector: info.sector,
+          cubierta: info.cubierta,
+          deptoAsoc: info.deptoAsoc,
           nivel: 'Subterráneo',
-          superficieUtil: null,
-          precioUF: CONFIG_PRECIOS.estacionamiento,
+          superficieUtil: 12.5,
+          precioUF: info.precioDif,
           estado: 'disponible',
           polygonCoords: `${xSlot},${ySlot} ${xSlot + 42},${ySlot + 4} ${xSlot + 42},${ySlot + 85} ${xSlot},${ySlot + 80}`
         });
@@ -180,43 +280,53 @@
         const index = num - 26;
         const xSlot = 120 + index * 45;
         const ySlot = 195;
+        const info = DATOS_ESTACIONAMIENTOS_EXCEL[num];
         unidades.push({
           id: 'EST-' + String(num).padStart(2, '0'),
           numero: num,
           tipo: 'Estacionamiento',
+          sector: info.sector,
+          cubierta: info.cubierta,
+          deptoAsoc: info.deptoAsoc,
           nivel: 'Subterráneo',
-          superficieUtil: null,
-          precioUF: CONFIG_PRECIOS.estacionamiento,
+          superficieUtil: 12.5,
+          precioUF: info.precioDif,
           estado: 'disponible',
           polygonCoords: `${xSlot},${ySlot} ${xSlot + 40},${ySlot} ${xSlot + 40},${ySlot + 75} ${xSlot},${ySlot + 75}`
         });
       }
 
-      for (let num = 35; num <= 51; num++) {
+      for (let num = 35; num <= 50; num++) {
         const index = num - 35;
-        const xSlot = 535 + index * 40;
+        const xSlot = 535 + index * 42;
         const ySlot = 195;
+        const info = DATOS_ESTACIONAMIENTOS_EXCEL[num];
         unidades.push({
           id: 'EST-' + String(num).padStart(2, '0'),
           numero: num,
           tipo: 'Estacionamiento',
+          sector: info.sector,
+          cubierta: info.cubierta,
+          deptoAsoc: info.deptoAsoc,
           nivel: 'Subterráneo',
-          superficieUtil: null,
-          precioUF: CONFIG_PRECIOS.estacionamiento,
+          superficieUtil: 12.5,
+          precioUF: info.precioDif,
           estado: 'disponible',
-          polygonCoords: `${xSlot},${ySlot} ${xSlot + 36},${ySlot} ${xSlot + 36},${ySlot + 75} ${xSlot},${ySlot + 75}`
+          polygonCoords: `${xSlot},${ySlot} ${xSlot + 38},${ySlot} ${xSlot + 38},${ySlot + 75} ${xSlot},${ySlot + 75}`
         });
       }
 
+      // 4. Bodegas 01 al 34
       for (let i = 1; i <= 12; i++) {
         const ySlot = 295 + (i - 1) * 17;
+        const bInfo = DATOS_BODEGAS_EXCEL[i];
         unidades.push({
           id: 'BOD-' + String(i).padStart(2, '0'),
           numero: i,
           tipo: 'Bodega',
           nivel: 'Subterráneo',
-          superficieUtil: 2.5,
-          precioUF: CONFIG_PRECIOS.bodega,
+          superficieUtil: bInfo.sup,
+          precioUF: bInfo.precioUF,
           estado: 'disponible',
           polygonCoords: `540,${ySlot} 575,${ySlot} 575,${ySlot + 14} 540,${ySlot + 14}`
         });
@@ -224,13 +334,14 @@
 
       for (let i = 13; i <= 18; i++) {
         const ySlot = 300 + (i - 13) * 19;
+        const bInfo = DATOS_BODEGAS_EXCEL[i];
         unidades.push({
           id: 'BOD-' + String(i).padStart(2, '0'),
           numero: i,
           tipo: 'Bodega',
           nivel: 'Subterráneo',
-          superficieUtil: 2.5,
-          precioUF: CONFIG_PRECIOS.bodega,
+          superficieUtil: bInfo.sup,
+          precioUF: bInfo.precioUF,
           estado: 'disponible',
           polygonCoords: `590,${ySlot} 628,${ySlot} 628,${ySlot + 16} 590,${ySlot + 16}`
         });
@@ -238,13 +349,14 @@
 
       for (let i = 19; i <= 24; i++) {
         const ySlot = 420 + (i - 19) * 16;
+        const bInfo = DATOS_BODEGAS_EXCEL[i];
         unidades.push({
           id: 'BOD-' + String(i).padStart(2, '0'),
           numero: i,
           tipo: 'Bodega',
           nivel: 'Subterráneo',
-          superficieUtil: 2.5,
-          precioUF: CONFIG_PRECIOS.bodega,
+          superficieUtil: bInfo.sup,
+          precioUF: bInfo.precioUF,
           estado: 'disponible',
           polygonCoords: `590,${ySlot} 628,${ySlot} 628,${ySlot + 14} 590,${ySlot + 14}`
         });
@@ -252,13 +364,14 @@
 
       for (let i = 25; i <= 34; i++) {
         const ySlot = 325 + (i - 25) * 17;
+        const bInfo = DATOS_BODEGAS_EXCEL[i];
         unidades.push({
           id: 'BOD-' + String(i).padStart(2, '0'),
           numero: i,
           tipo: 'Bodega',
           nivel: 'Subterráneo',
-          superficieUtil: 2.5,
-          precioUF: CONFIG_PRECIOS.bodega,
+          superficieUtil: bInfo.sup,
+          precioUF: bInfo.precioUF,
           estado: 'disponible',
           polygonCoords: `700,${ySlot} 735,${ySlot} 735,${ySlot + 14} 700,${ySlot + 14}`
         });
@@ -276,20 +389,22 @@
       const [guardandoEnSheets, setGuardandoEnSheets] = React.useState(false);
       const [dataUrlImagen, setDataUrlImagen] = React.useState(null);
 
-      // Conversor UF
+      // Valor UF Automatizado
       const [valorUF, setValorUF] = React.useState(39500);
+      const [ufSincronizada, setUfSincronizada] = React.useState(false);
+      const [cargandoUF, setCargandoUF] = React.useState(false);
 
       // Filtros rápidos
       const [filtroEstado, setFiltroEstado] = React.useState('todos');
       const [filtroDisposicion, setFiltroDisposicion] = React.useState('todas');
       const [precioMaximo, setPrecioMaximo] = React.useState(6500);
 
-      // PARÁMETROS DEL SIMULADOR FINANCIERO
-      const [pctPie, setPctPie] = React.useState(20);          // 5, 10, 15, 20 %
-      const [montoReservaUF, setMontoReservaUF] = React.useState(50); // Reserva comercial en UF
-      const [cuotasPie, setCuotasPie] = React.useState(24);    // 12 a 36 cuotas
-      const [tasaHipotecarioAnual, setTasaHipotecarioAnual] = React.useState(4.50); // Tasa anual en %
-      const [plazoCreditoAnios, setPlazoCreditoAnios] = React.useState(25); // 20, 25, 30 años
+      // Simulador Financiero
+      const [pctPie, setPctPie] = React.useState(20);
+      const [montoReservaUF, setMontoReservaUF] = React.useState(50);
+      const [cuotasPie, setCuotasPie] = React.useState(24);
+      const [tasaHipotecarioAnual, setTasaHipotecarioAnual] = React.useState(4.50);
+      const [plazoCreditoAnios, setPlazoCreditoAnios] = React.useState(25);
 
       const unidadSeleccionada = React.useMemo(() => 
         inventario.find(u => u.id === unidadSeleccionadaId) || null,
@@ -305,43 +420,102 @@
         observaciones: ''
       });
 
-      // MODELACIÓN FINANCIERA INTEGRADA
+      // Consulta automática de UF del día en Chile
+      const obtenerUFDelDia = React.useCallback(() => {
+        setCargandoUF(true);
+        fetch('https://mindicador.cl/api/uf')
+          .then(res => res.json())
+          .then(data => {
+            if (data && Array.isArray(data.serie) && data.serie.length > 0) {
+              const valorActual = Math.round(data.serie[0].valor * 100) / 100;
+              setValorUF(valorActual);
+              setUfSincronizada(true);
+            }
+            setCargandoUF(false);
+          })
+          .catch(() => {
+            setCargandoUF(false);
+            setUfSincronizada(false);
+          });
+      }, []);
+
+      React.useEffect(() => {
+        obtenerUFDelDia();
+      }, [obtenerUFDelDia]);
+
+      const ocupacionComplementarios = React.useMemo(() => {
+        const bodOcupadas = {};
+        const est2Ocupados = {};
+        inventario.forEach(u => {
+          if (u.tipo.includes('Duplex') && u.estado !== 'disponible') {
+            if (u.bodegaAsignadaId) bodOcupadas[u.bodegaAsignadaId] = u.id;
+            if (u.segundoEstacionamientoId) est2Ocupados[u.segundoEstacionamientoId] = u.id;
+          }
+        });
+        return { bodOcupadas, est2Ocupados };
+      }, [inventario]);
+
       const calculosFinancieros = React.useMemo(() => {
         if (!unidadSeleccionada) return {
           base: 0, est: 0, est2: 0, bod: 0, total: 0, totalCLP: 0,
+          est1Info: null, est2Info: null, bodInfo: null,
           montoPieUF: 0, saldoPieUF: 0, cuotaMensualPieUF: 0, cuotaMensualPieCLP: 0,
           montoCreditoUF: 0, dividendoUF: 0, dividendoCLP: 0, rentaSugeridaCLP: 0
         };
 
         const base = unidadSeleccionada.precioUF || 0;
-        const est = unidadSeleccionada.estacionamientoAsignadoId ? PRECIO_ESTACIONAMIENTO : 0;
-        const est2 = unidadSeleccionada.segundoEstacionamientoId ? PRECIO_ESTACIONAMIENTO : 0;
-        const bod = unidadSeleccionada.bodegaAsignadaId ? PRECIO_BODEGA : 0;
+
+        // Estacionamiento 1 (Todos a 350 UF)
+        let est = 0;
+        let est1Info = null;
+        if (unidadSeleccionada.estacionamientoAsignadoId) {
+          const num1 = Number(unidadSeleccionada.estacionamientoAsignadoId.replace('EST-', ''));
+          est1Info = DATOS_ESTACIONAMIENTOS_EXCEL[num1];
+          est = est1Info ? est1Info.precioDif : 350;
+        }
+
+        // Estacionamiento 2 opcional (Techados: 400 UF, Semitechados: 375 UF, Descubiertos: 350 UF)
+        let est2 = 0;
+        let est2Info = null;
+        if (unidadSeleccionada.segundoEstacionamientoId) {
+          const num2 = Number(unidadSeleccionada.segundoEstacionamientoId.replace('EST-', ''));
+          est2Info = DATOS_ESTACIONAMIENTOS_EXCEL[num2];
+          est2 = est2Info ? est2Info.precioDif : 350;
+        }
+
+        // Bodega elegida (escala progresiva 90 - 150 UF)
+        let bod = 0;
+        let bodInfo = null;
+        if (unidadSeleccionada.bodegaAsignadaId) {
+          const numBod = Number(unidadSeleccionada.bodegaAsignadaId.replace('BOD-', ''));
+          bodInfo = DATOS_BODEGAS_EXCEL[numBod];
+          bod = bodInfo ? bodInfo.precioUF : 90;
+        }
+
         const total = base + est + est2 + bod;
         const totalCLP = Math.round(total * valorUF);
 
-        // 1. Simulación de Cuotas de Pie
+        // Plan de Pie
         const montoPieUF = total * (pctPie / 100);
         const saldoPieUF = Math.max(0, montoPieUF - montoReservaUF);
         const cuotaMensualPieUF = cuotasPie > 0 ? saldoPieUF / cuotasPie : 0;
         const cuotaMensualPieCLP = Math.round(cuotaMensualPieUF * valorUF);
 
-        // 2. Simulación Crédito Hipotecario
+        // Crédito Hipotecario
         const montoCreditoUF = total * (1 - (pctPie / 100));
         const numMeses = plazoCreditoAnios * 12;
         const tasaMensual = Math.pow(1 + (tasaHipotecarioAnual / 100), 1 / 12) - 1;
 
         let dividendoUF = 0;
         if (tasaMensual > 0 && numMeses > 0) {
-          dividendoUF = montoCreditoUF * ( (tasaMensual * Math.pow(1 + tasaMensual, numMeses)) / (Math.pow(1 + tasaMensual, numMeses) - 1) );
+          dividendoUF = montoCreditoUF * ((tasaMensual * Math.pow(1 + tasaMensual, numMeses)) / (Math.pow(1 + tasaMensual, numMeses) - 1));
         }
         const dividendoCLP = Math.round(dividendoUF * valorUF);
-
-        // 3. Renta Sugerida Líquida (Dividendo <= 25% del ingreso líquido familiar)
         const rentaSugeridaCLP = dividendoCLP * 4;
 
         return {
           base, est, est2, bod, total, totalCLP,
+          est1Info, est2Info, bodInfo,
           montoPieUF, saldoPieUF, cuotaMensualPieUF, cuotaMensualPieCLP,
           montoCreditoUF, dividendoUF, dividendoCLP, rentaSugeridaCLP
         };
@@ -405,15 +579,23 @@
 
         const encabezados = [
           'ID Unidad', 'Tipo', 'Tipologia Arquitectonica', 'Nivel',
-          'Superficie Util (m2)', 'Superficie Exterior Patio/Azotea (m2)',
+          'Superficie Util (m2)', 'Superficie Exterior (m2)',
           'Estacionamiento 1', 'Estacionamiento 2', 'Bodega', 'Precio Depto (UF)',
           'Total Inversion (UF)', 'Total Inversion (CLP)', 'Estado', 'Nombre Cliente',
           'RUT', 'Email', 'Telefono', 'Etapa Comercial', 'Observaciones'
         ];
 
         const filas = inventarioOrdenado.map(u => {
-          const estExtra = u.segundoEstacionamientoId ? PRECIO_ESTACIONAMIENTO : 0;
-          const totalInv = u.tipo.includes('Duplex') ? (u.precioUF + PRECIO_ESTACIONAMIENTO + estExtra + PRECIO_BODEGA) : u.precioUF;
+          let totalInv = u.precioUF;
+          if (u.tipo.includes('Duplex')) {
+            const num1 = u.estacionamientoAsignadoId ? Number(u.estacionamientoAsignadoId.replace('EST-', '')) : 0;
+            const pEst1 = num1 && DATOS_ESTACIONAMIENTOS_EXCEL[num1] ? DATOS_ESTACIONAMIENTOS_EXCEL[num1].precioDif : 0;
+            const num2 = u.segundoEstacionamientoId ? Number(u.segundoEstacionamientoId.replace('EST-', '')) : 0;
+            const pEst2 = num2 && DATOS_ESTACIONAMIENTOS_EXCEL[num2] ? DATOS_ESTACIONAMIENTOS_EXCEL[num2].precioDif : 0;
+            const numB = u.bodegaAsignadaId ? Number(u.bodegaAsignadaId.replace('BOD-', '')) : 0;
+            const pBod = numB && DATOS_BODEGAS_EXCEL[numB] ? DATOS_BODEGAS_EXCEL[numB].precioUF : 0;
+            totalInv = u.precioUF + pEst1 + pEst2 + pBod;
+          }
           const totalCLP = Math.round(totalInv * valorUF);
           return [
             `"${u.id}"`, `"${u.tipo}"`, `"${u.nombreTipologia || ''}"`, `"${u.nivel}"`,
@@ -475,37 +657,62 @@
         });
       };
 
+      const sincronizarInventarioYComplementarios = (unidadMod, nuevoEstado) => {
+        const idsAfectados = [
+          unidadMod.id,
+          unidadMod.estacionamientoAsignadoId,
+          unidadMod.segundoEstacionamientoId,
+          unidadMod.bodegaAsignadaId
+        ].filter(Boolean);
+
+        setInventario(prev => prev.map(u => {
+          if (u.id === unidadMod.id) return unidadMod;
+          if (idsAfectados.includes(u.id)) {
+            return {
+              ...u,
+              estado: nuevoEstado,
+              lead: unidadMod.lead
+            };
+          }
+          return u;
+        }));
+      };
+
       const cambiarEstadoUnidad = (nuevoEstado) => {
-        if (!unidadSeleccionadaId) return;
+        if (!unidadSeleccionadaId || !unidadSeleccionada) return;
         const unidadMod = { 
           ...unidadSeleccionada, 
           estado: nuevoEstado, 
           lead: formLead,
           totalUF: calculosFinancieros.total
         };
-        setInventario(prev => prev.map(u => u.id === unidadSeleccionadaId ? unidadMod : u));
+        sincronizarInventarioYComplementarios(unidadMod, nuevoEstado);
         enviarASheetsYCorreo(unidadMod);
       };
 
       const actualizarPrecioUnidad = (nuevoPrecio) => {
         const valorNumerico = parseFloat(nuevoPrecio) || 0;
-        const estExtra = unidadSeleccionada.segundoEstacionamientoId ? PRECIO_ESTACIONAMIENTO : 0;
         const unidadMod = { 
           ...unidadSeleccionada, 
           precioUF: valorNumerico,
-          totalUF: valorNumerico + calculosFinancieros.est + estExtra + calculosFinancieros.bod
+          totalUF: valorNumerico + calculosFinancieros.est + calculosFinancieros.est2 + calculosFinancieros.bod
         };
         setInventario(prev => prev.map(u => u.id === unidadSeleccionadaId ? unidadMod : u));
         enviarASheetsYCorreo(unidadMod);
       };
 
       const toggleSegundoEstacionamiento = (checked) => {
-        const nuevoSegundoEst = checked ? 'EST-01' : null;
+        const primerLibre = ESTACIONAMIENTOS_LIBRES[0] ? `EST-${String(ESTACIONAMIENTOS_LIBRES[0]).padStart(2, '0')}` : null;
+        const nuevoSegundoEst = checked ? primerLibre : null;
         setInventario(prev => prev.map(u => u.id === unidadSeleccionadaId ? { ...u, segundoEstacionamientoId: nuevoSegundoEst } : u));
       };
 
       const cambiarIdSegundoEstacionamiento = (idEst) => {
         setInventario(prev => prev.map(u => u.id === unidadSeleccionadaId ? { ...u, segundoEstacionamientoId: idEst } : u));
+      };
+
+      const cambiarBodegaSeleccionada = (idBod) => {
+        setInventario(prev => prev.map(u => u.id === unidadSeleccionadaId ? { ...u, bodegaAsignadaId: idBod || null } : u));
       };
 
       const actualizarPatioUnidad = (nuevoPatio) => {
@@ -538,10 +745,13 @@
           totalCLP: calculosFinancieros.totalCLP,
           tipologia: unidadSeleccionada.nombreTipologia,
           estacionamientoId: estInfo,
-          bodegaId: unidadSeleccionada.bodegaAsignadaId
+          bodegaId: unidadSeleccionada.bodegaAsignadaId,
+          est1Id: unidadSeleccionada.estacionamientoAsignadoId,
+          est2Id: unidadSeleccionada.segundoEstacionamientoId,
+          bodId: unidadSeleccionada.bodegaAsignadaId
         };
 
-        setInventario(prev => prev.map(u => u.id === unidadSeleccionadaId ? unidadMod : u));
+        sincronizarInventarioYComplementarios(unidadMod, nuevoEstado);
         setFormLead(leadActualizado);
 
         if (unidadSeleccionada.tipo.includes('Duplex')) {
@@ -605,18 +815,18 @@
           switch (estado) {
             case 'disponible': return 'fill-cyan-500/50 stroke-cyan-400 hover:fill-cyan-400/70';
             case 'contacto': return 'fill-sky-500/50 stroke-sky-400 hover:fill-sky-400/70';
-            case 'cotizada': return 'fill-violet-500/50 stroke-violet-400 hover:fill-violet-400/70';
-            case 'reservada': return 'fill-amber-500/50 stroke-amber-400 hover:fill-amber-400/70';
-            case 'vendida': return 'fill-rose-500/50 stroke-rose-500 hover:fill-rose-400/60';
+            case 'cotizada': return 'fill-violet-500/65 stroke-violet-300 hover:fill-violet-400/80';
+            case 'reservada': return 'fill-amber-500/65 stroke-amber-300 hover:fill-amber-400/80';
+            case 'vendida': return 'fill-rose-500/65 stroke-rose-400 hover:fill-rose-400/80';
             case 'bloqueada': return 'fill-slate-700/60 stroke-slate-500 hover:fill-slate-600/70';
           }
         }
         switch (estado) {
           case 'disponible': return 'fill-emerald-500/40 stroke-emerald-500 hover:fill-emerald-400/60';
           case 'contacto': return 'fill-sky-500/45 stroke-sky-400 hover:fill-sky-400/65';
-          case 'cotizada': return 'fill-violet-500/50 stroke-violet-400 hover:fill-violet-400/70';
-          case 'reservada': return 'fill-amber-500/50 stroke-amber-400 hover:fill-amber-400/70';
-          case 'vendida': return 'fill-rose-500/50 stroke-rose-500 hover:fill-rose-400/60';
+          case 'cotizada': return 'fill-violet-500/60 stroke-violet-300 hover:fill-violet-400/75';
+          case 'reservada': return 'fill-amber-500/60 stroke-amber-300 hover:fill-amber-400/75';
+          case 'vendida': return 'fill-rose-500/60 stroke-rose-400 hover:fill-rose-400/75';
           case 'bloqueada': return 'fill-slate-700/60 stroke-slate-500 hover:fill-slate-600/70';
           default: return '';
         }
@@ -627,24 +837,38 @@
       return el('div', { className: 'flex h-screen bg-slate-950 text-slate-100 font-sans overflow-hidden' },
         el('div', { className: 'flex-1 flex flex-col border-r border-slate-800 min-w-0' },
           
-          // Encabezado
+          // Encabezado con UF Automatizada
           el('header', { className: 'px-5 py-2.5 bg-slate-900 border-b border-slate-800 flex justify-between items-center gap-4' },
             el('div', null,
               el('div', { className: 'flex items-center gap-2.5' },
                 el('h1', { className: 'text-lg font-bold tracking-tight text-white' }, 'Master Plan Inmobiliario — Huechuraba'),
                 guardandoEnSheets && el('span', { className: 'text-[11px] bg-emerald-950 text-emerald-400 border border-emerald-800 px-2 py-0.5 rounded font-mono' }, '● Guardando y Notificando...')
               ),
-              el('p', { className: 'text-xs text-indigo-300 font-medium' }, '34 duplex, 34 bodegas y 51 estacionamientos')
+              el('p', { className: 'text-xs text-indigo-300 font-medium' }, '34 duplex, 34 bodegas y 50 estacionamientos vendibles')
             ),
             el('div', { className: 'flex items-center gap-3' },
               el('div', { className: 'flex items-center gap-1.5 bg-slate-950 px-2.5 py-1 rounded-lg border border-slate-800 text-xs' },
-                el('span', { className: 'text-slate-400 font-medium' }, 'Valor UF: $'),
+                el('span', { 
+                  title: ufSincronizada ? 'Valor UF Oficial del Día' : 'Valor UF Manual',
+                  className: `w-2 h-2 rounded-full ${ufSincronizada ? 'bg-emerald-400' : 'bg-amber-400'}`
+                }),
+                el('span', { className: 'text-slate-400 font-medium' }, 'UF Hoy: $'),
                 el('input', {
                   type: 'number',
+                  step: '0.01',
                   value: valorUF,
-                  onChange: (ev) => setValorUF(Number(ev.target.value) || 0),
-                  className: 'w-20 bg-transparent text-emerald-400 font-bold focus:outline-none'
-                })
+                  onChange: (ev) => {
+                    setValorUF(Number(ev.target.value) || 0);
+                    setUfSincronizada(false);
+                  },
+                  className: 'w-20 bg-transparent text-emerald-400 font-bold focus:outline-none font-mono'
+                }),
+                el('button', {
+                  type: 'button',
+                  onClick: obtenerUFDelDia,
+                  title: 'Actualizar UF del día',
+                  className: 'text-slate-400 hover:text-white ml-1 text-xs'
+                }, cargandoUF ? '...' : '↻')
               ),
               el('button', {
                 onClick: exportarACSV,
@@ -653,11 +877,9 @@
             )
           ),
 
-          // BARRA DE FILTROS RÁPIDOS
+          // Barra de Filtros Rápidos
           el('div', { className: 'px-5 py-2 bg-slate-900/90 border-b border-slate-800 flex flex-wrap items-center justify-between gap-3 text-xs' },
             el('div', { className: 'flex flex-wrap items-center gap-3' },
-              
-              // Selector de Planta
               el('div', { className: 'flex items-center gap-1 bg-slate-950 p-1 rounded-lg border border-slate-800' },
                 el('button', {
                   onClick: () => setPlantaActiva('SUB'),
@@ -666,14 +888,13 @@
                 el('button', {
                   onClick: () => setPlantaActiva('P1'),
                   className: `px-2.5 py-1 font-semibold rounded ${plantaActiva === 'P1' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-white'}`
-                }, 'Garden (P1)'),
+                }, 'Garden (P1-P2)'),
                 el('button', {
                   onClick: () => setPlantaActiva('P4'),
                   className: `px-2.5 py-1 font-semibold rounded ${plantaActiva === 'P4' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-white'}`
-                }, 'Rooftop (P4)')
+                }, 'Rooftop (P3-P4)')
               ),
 
-              // Filtro por Estado
               el('div', { className: 'flex items-center gap-1.5 bg-slate-950 px-2.5 py-1 rounded-lg border border-slate-800' },
                 el('span', { className: 'text-slate-400' }, 'Estado:'),
                 el('select', {
@@ -690,7 +911,6 @@
                 )
               ),
 
-              // Filtro por Distribución
               plantaActiva !== 'SUB' && el('div', { className: 'flex items-center gap-1.5 bg-slate-950 px-2.5 py-1 rounded-lg border border-slate-800' },
                 el('span', { className: 'text-slate-400' }, 'Distribución:'),
                 el('select', {
@@ -704,13 +924,12 @@
                 )
               ),
 
-              // Filtro por Presupuesto
               plantaActiva !== 'SUB' && el('div', { className: 'flex items-center gap-2 bg-slate-950 px-3 py-1 rounded-lg border border-slate-800' },
                 el('span', { className: 'text-slate-400' }, 'Hasta:'),
                 el('input', {
                   type: 'range',
-                  min: 4800,
-                  max: 6500,
+                  min: 4200,
+                  max: 6000,
                   step: 50,
                   value: precioMaximo,
                   onChange: (ev) => setPrecioMaximo(Number(ev.target.value)),
@@ -737,12 +956,17 @@
               // Leyenda
               el('div', { className: 'absolute top-3 left-3 z-10 flex flex-wrap items-center gap-3 bg-slate-950/90 px-3 py-1.5 rounded border border-slate-800 text-[11px]' },
                 el('span', { className: 'flex items-center gap-1.5' }, el('span', { className: 'w-2.5 h-2.5 bg-emerald-500 rounded-sm' }), 'Disponible'),
-                el('span', { className: 'flex items-center gap-1.5' }, el('span', { className: 'w-2.5 h-2.5 bg-sky-500 rounded-sm' }), 'Contacto Inicial'),
-                el('span', { className: 'flex items-center gap-1.5' }, el('span', { className: 'w-2.5 h-2.5 bg-violet-500 rounded-sm' }), 'Cotización'),
+                el('span', { className: 'flex items-center gap-1.5' }, el('span', { className: 'w-2.5 h-2.5 bg-cyan-500 rounded-sm' }), 'Bodega Disp.'),
+                el('span', { className: 'flex items-center gap-1.5' }, el('span', { className: 'w-2.5 h-2.5 bg-sky-500 rounded-sm' }), 'Contacto'),
+                el('span', { className: 'flex items-center gap-1.5' }, el('span', { className: 'w-2.5 h-2.5 bg-violet-500 rounded-sm' }), 'Cotizada'),
                 el('span', { className: 'flex items-center gap-1.5' }, el('span', { className: 'w-2.5 h-2.5 bg-amber-500 rounded-sm' }), 'Reservada'),
                 el('span', { className: 'flex items-center gap-1.5' }, el('span', { className: 'w-2.5 h-2.5 bg-rose-500 rounded-sm' }), 'Vendida'),
                 hoverUnidad && el('div', { className: 'ml-2 pl-2 border-l border-slate-800 text-indigo-300 font-mono text-xs' },
-                  `${hoverUnidad.id} (${hoverUnidad.nombreTipologia || hoverUnidad.tipo}): ${hoverUnidad.precioUF.toLocaleString('es-CL')} UF`
+                  hoverUnidad.tipo === 'Bodega' 
+                    ? `${hoverUnidad.id} (${hoverUnidad.superficieUtil} m²): ${hoverUnidad.precioUF} UF [${hoverUnidad.estado.toUpperCase()}]`
+                    : hoverUnidad.tipo === 'Estacionamiento'
+                    ? `${hoverUnidad.id} (${hoverUnidad.sector} - ${hoverUnidad.cubierta}${hoverUnidad.deptoAsoc ? ' • Asig. U-' + String(hoverUnidad.deptoAsoc).padStart(2, '0') : ' • Libre 2ª Unid.'}): ${hoverUnidad.precioUF} UF`
+                    : `${hoverUnidad.id} (${hoverUnidad.nombreTipologia}): ${hoverUnidad.precioUF.toLocaleString('es-CL')} UF`
                 )
               ),
 
@@ -822,11 +1046,10 @@
           )
         ),
 
-        // PANEL LATERAL CRM + SIMULADOR FINANCIERO
-        el('div', { className: 'w-[530px] bg-slate-900 flex flex-col overflow-y-auto border-l border-slate-800 flex-shrink-0' },
+        // PANEL LATERAL CRM
+        el('div', { className: 'w-[535px] bg-slate-900 flex flex-col overflow-y-auto border-l border-slate-800 flex-shrink-0' },
           unidadSeleccionada ? el('div', { className: 'p-5 space-y-4' },
             
-            // Ficha Principal y Precios
             el('div', { className: 'border-b border-slate-800 pb-3' },
               el('div', { className: 'flex justify-between items-start gap-4' },
                 el('div', null,
@@ -836,7 +1059,7 @@
                   el('h2', { className: 'text-3xl font-black text-white mt-1' }, unidadSeleccionada.id)
                 ),
                 el('div', { className: 'text-right' },
-                  el('span', { className: 'text-[11px] text-slate-400 block mb-0.5' }, 'Precio Depto (UF)'),
+                  el('span', { className: 'text-[11px] text-slate-400 block mb-0.5' }, 'Precio Unidad (UF)'),
                   el('input', {
                     type: 'number',
                     value: unidadSeleccionada.precioUF,
@@ -846,40 +1069,67 @@
                 )
               ),
 
-              // Resumen Comercial Paquete
-              unidadSeleccionada.tipo.includes('Duplex') && el('div', { className: 'mt-3 bg-slate-950 p-3 rounded-lg border border-indigo-900/60 text-xs space-y-1.5' },
+              unidadSeleccionada.tipo.includes('Duplex') && el('div', { className: 'mt-3 bg-slate-950 p-3 rounded-lg border border-indigo-900/60 text-xs space-y-2' },
                 el('div', { className: 'flex justify-between text-slate-300' },
                   el('span', null, 'Departamento:'),
                   el('strong', null, `${unidadSeleccionada.precioUF.toLocaleString('es-CL')} UF`)
                 ),
+
                 el('div', { className: 'flex justify-between text-slate-300' },
-                  el('span', null, `Estacionamiento (${unidadSeleccionada.estacionamientoAsignadoId || 'Sin Asignar'}):`),
-                  el('strong', null, `${PRECIO_ESTACIONAMIENTO} UF`)
+                  el('span', null, 
+                    `Estacionamiento 1 (${unidadSeleccionada.estacionamientoAsignadoId}${calculosFinancieros.est1Info ? ' - ' + calculosFinancieros.est1Info.cubierta : ''}):`
+                  ),
+                  el('strong', null, `${calculosFinancieros.est} UF`)
                 ),
-                el('div', { className: 'flex justify-between items-center text-slate-300 pt-1 border-t border-slate-900' },
-                  el('label', { className: 'flex items-center gap-2 cursor-pointer' },
+
+                el('div', { className: 'flex justify-between items-center text-slate-300 pt-1.5 border-t border-slate-900 gap-2' },
+                  el('label', { className: 'flex items-center gap-1.5 cursor-pointer flex-shrink-0' },
                     el('input', {
                       type: 'checkbox',
                       checked: Boolean(unidadSeleccionada.segundoEstacionamientoId),
                       onChange: (ev) => toggleSegundoEstacionamiento(ev.target.checked),
                       className: 'rounded text-indigo-600 focus:ring-0 bg-slate-900 border-slate-700'
                     }),
-                    el('span', { className: 'font-semibold text-indigo-300' }, '+ Añadir 2° Estacionamiento')
+                    el('span', { className: 'font-semibold text-indigo-300' }, '+ 2° Estacionamiento:')
                   ),
                   unidadSeleccionada.segundoEstacionamientoId && el('select', {
                     value: unidadSeleccionada.segundoEstacionamientoId,
                     onChange: (ev) => cambiarIdSegundoEstacionamiento(ev.target.value),
-                    className: 'bg-slate-900 text-white border border-slate-700 rounded px-2 py-0.5 text-xs font-bold'
+                    className: 'bg-slate-900 text-white border border-slate-700 rounded px-2 py-1 text-[11px] font-bold max-w-[240px]'
                   },
-                    ESTACIONAMIENTOS_LIBRES.map(num => 
-                      el('option', { key: num, value: `EST-${String(num).padStart(2, '0')}` }, `EST-${String(num).padStart(2, '0')} (+350 UF)`)
-                    )
+                    ESTACIONAMIENTOS_LIBRES.map(num => {
+                      const idStr = `EST-${String(num).padStart(2, '0')}`;
+                      const infoE = DATOS_ESTACIONAMIENTOS_EXCEL[num];
+                      const usadoPor = ocupacionComplementarios.est2Ocupados[idStr];
+                      const etiquetaEstado = usadoPor && usadoPor !== unidadSeleccionada.id ? ` [En ${usadoPor}]` : '';
+                      return el('option', { key: num, value: idStr },
+                        `${idStr} (${infoE.cubierta} • ${infoE.precioDif} UF)${etiquetaEstado}`
+                      );
+                    })
                   )
                 ),
-                el('div', { className: 'flex justify-between text-slate-300' },
-                  el('span', null, `Bodega (${unidadSeleccionada.bodegaAsignadaId || 'Sin Asignar'}):`),
-                  el('strong', null, `${PRECIO_BODEGA} UF`)
+
+                el('div', { className: 'flex justify-between items-center text-slate-300 pt-1.5 border-t border-slate-900 gap-2' },
+                  el('span', { className: 'font-semibold text-cyan-300 flex-shrink-0' }, 'Bodega (Elegir):'),
+                  el('select', {
+                    value: unidadSeleccionada.bodegaAsignadaId || '',
+                    onChange: (ev) => cambiarBodegaSeleccionada(ev.target.value),
+                    className: 'bg-slate-900 text-white border border-slate-700 rounded px-2 py-1 text-[11px] font-bold max-w-[260px]'
+                  },
+                    el('option', { value: '' }, 'Sin Bodega (0 UF)'),
+                    Object.keys(DATOS_BODEGAS_EXCEL).map(numStr => {
+                      const num = Number(numStr);
+                      const idStr = `BOD-${String(num).padStart(2, '0')}`;
+                      const infoB = DATOS_BODEGAS_EXCEL[num];
+                      const usadoPor = ocupacionComplementarios.bodOcupadas[idStr];
+                      const etiquetaEstado = usadoPor && usadoPor !== unidadSeleccionada.id ? ` [En ${usadoPor}]` : '';
+                      return el('option', { key: num, value: idStr },
+                        `${idStr} (${infoB.sup} m² • ${infoB.precioUF} UF)${etiquetaEstado}`
+                      );
+                    })
+                  )
                 ),
+
                 el('div', { className: 'pt-2 border-t border-slate-800' },
                   el('div', { className: 'flex justify-between text-emerald-400 font-bold text-sm' },
                     el('span', null, 'Total Inversión (UF):'),
@@ -892,14 +1142,13 @@
                 )
               ),
 
-              // SIMULADOR FINANCIERO: PIE EN CUOTAS Y CRÉDITO HIPOTECARIO
+              // SIMULADOR FINANCIERO
               unidadSeleccionada.tipo.includes('Duplex') && el('div', { className: 'mt-3 bg-indigo-950/40 p-3.5 rounded-lg border border-indigo-800/80 space-y-3 text-xs' },
                 el('div', { className: 'flex justify-between items-center border-b border-indigo-900/80 pb-2' },
                   el('span', { className: 'font-bold text-indigo-200 uppercase tracking-wider text-[11px]' }, 'Plan de Pagos y Crédito Hipotecario'),
                   el('span', { className: 'text-[10px] bg-indigo-900 text-indigo-300 px-2 py-0.5 rounded' }, 'Simulación Sala de Ventas')
                 ),
 
-                // 1. Selector de Pie
                 el('div', null,
                   el('div', { className: 'flex justify-between text-slate-300 mb-1.5' },
                     el('span', null, '% Pie Compra:'),
@@ -921,7 +1170,6 @@
                   )
                 ),
 
-                // 2. Parámetros de Cuotas de Pie
                 el('div', { className: 'grid grid-cols-2 gap-2 bg-slate-950/70 p-2 rounded border border-indigo-950' },
                   el('div', null,
                     el('span', { className: 'text-[10px] text-slate-400 block mb-1' }, 'Reserva Inicial (UF):'),
@@ -945,7 +1193,6 @@
                   )
                 ),
 
-                // Tarjeta de Cuota Mensual de Pie
                 el('div', { className: 'bg-indigo-900/50 p-2.5 rounded border border-indigo-700/60 flex justify-between items-center' },
                   el('div', null,
                     el('span', { className: 'text-[10px] text-indigo-300 block font-medium' }, `Cuota Mensual de Pie (${cuotasPie} meses):`),
@@ -957,14 +1204,12 @@
                   )
                 ),
 
-                // 3. Proyección Crédito Hipotecario
                 el('div', { className: 'pt-2 border-t border-indigo-900/80 space-y-2' },
                   el('div', { className: 'flex justify-between items-center text-slate-300' },
                     el('span', { className: 'text-[11px] font-semibold text-slate-200' }, `Crédito Hipotecario (${100 - pctPie}%):`),
                     el('strong', { className: 'text-white font-mono' }, `${calculosFinancieros.montoCreditoUF.toFixed(1)} UF`)
                   ),
 
-                  // Tasa de Mercado Editable y Plazo
                   el('div', { className: 'grid grid-cols-2 gap-2' },
                     el('div', null,
                       el('span', { className: 'text-[10px] text-slate-400 block mb-1' }, 'Tasa Anual Hipot. (%):'),
@@ -995,7 +1240,6 @@
                     )
                   ),
 
-                  // Tarjetas Dividendo y Renta Sugerida
                   el('div', { className: 'grid grid-cols-2 gap-2 mt-1' },
                     el('div', { className: 'bg-slate-950 p-2.5 rounded border border-slate-800' },
                       el('span', { className: 'text-[10px] text-slate-400 block' }, 'Dividendo Estimado:'),
@@ -1013,33 +1257,30 @@
 
               // Metrajes
               el('div', { className: 'mt-3 bg-slate-950 p-3 rounded-lg border border-slate-800 grid grid-cols-2 gap-3 text-xs' },
-                unidadSeleccionada.superficieUtil !== null ? el('div', null,
+                unidadSeleccionada.superficieUtil !== null && el('div', null,
                   el('span', { className: 'text-slate-400 block' }, 'Superficie Útil:'),
                   el('p', { className: 'text-sm font-bold text-white mt-0.5' }, `${unidadSeleccionada.superficieUtil} m²`)
-                ) : el('div', null,
-                  el('span', { className: 'text-slate-400 block' }, 'Asignación:'),
-                  el('p', { className: 'text-sm font-bold text-indigo-300 mt-0.5' }, 'Cupo Exclusivo')
                 ),
 
-                unidadSeleccionada.tipo === 'Duplex Garden' && el('div', null,
-                  el('span', { className: 'text-slate-400 block mb-1' }, 'Superficie Patio (m²):'),
+                unidadSeleccionada.tipo.includes('Duplex') && el('div', null,
+                  el('span', { className: 'text-slate-400 block mb-1' }, 'Sup. Exterior / No Útil (m²):'),
                   el('input', {
                     type: 'number',
-                    step: '0.5',
+                    step: '0.01',
                     value: unidadSeleccionada.metrajeExterior,
                     onChange: (ev) => actualizarPatioUnidad(ev.target.value),
                     className: 'w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs font-bold text-emerald-400 focus:outline-none'
                   })
                 ),
 
-                unidadSeleccionada.tipo === 'Duplex Rooftop' && el('div', null,
-                  el('span', { className: 'text-slate-400 block' }, 'Superficie Azotea:'),
-                  el('p', { className: 'text-sm font-bold text-indigo-400 mt-0.5' }, '16.0 m² (Fijo)')
+                unidadSeleccionada.tipo === 'Estacionamiento' && el('div', null,
+                  el('span', { className: 'text-slate-400 block' }, 'Especificación:'),
+                  el('p', { className: 'text-xs font-bold text-indigo-300 mt-0.5' }, `${unidadSeleccionada.sector} • ${unidadSeleccionada.cubierta}`)
                 ),
 
                 unidadSeleccionada.tipo === 'Bodega' && el('div', null,
-                  el('span', { className: 'text-slate-400 block' }, 'Capacidad:'),
-                  el('p', { className: 'text-sm font-bold text-cyan-400 mt-0.5' }, '2.5 m² Subterránea')
+                  el('span', { className: 'text-slate-400 block' }, 'Ubicación:'),
+                  el('p', { className: 'text-sm font-bold text-cyan-400 mt-0.5' }, 'Subterráneo S 01')
                 )
               ),
 
@@ -1142,7 +1383,7 @@
                   value: formLead.observaciones,
                   onChange: ev => setFormLead({ ...formLead, observaciones: ev.target.value }),
                   className: 'w-full bg-slate-950 border border-slate-800 rounded px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500',
-                  placeholder: 'Plan de pagos acordado, banco pre-aprobado...'
+                  placeholder: 'Bodega seleccionada, 2do estacionamiento, banco...'
                 })
               ),
               el('button', {
@@ -1154,12 +1395,12 @@
           ) : el('div', { className: 'flex-1 flex flex-col items-center justify-center p-8 text-center text-slate-500' },
             el('p', { className: 'text-base font-semibold text-slate-300' }, 'Sin Selección'),
             el('p', { className: 'text-xs mt-1.5 leading-relaxed text-slate-400' },
-              'Haz clic sobre un departamento, estacionamiento o bodega en el plano para ver especificaciones y gestionar su simulación financiera.'
+              'Haz clic sobre un departamento, estacionamiento o bodega en el plano para ver especificaciones, configurar bodega/estacionamientos y simular el financiamiento.'
             )
           )
         ),
 
-        // PLANTILLA IMPRIMIBLE A4 OCULTA CON BLOQUE FINANCIERO Y DIVIDENDO
+        // PLANTILLA IMPRIMIBLE A4 OCULTA
         unidadSeleccionada && el('div', { style: { position: 'fixed', left: '-9999px', top: '0', zIndex: -100 } },
           el('div', { id: 'plantilla-ficha-pdf', style: { width: '190mm', padding: '9mm', fontFamily: 'Arial, sans-serif', color: '#111827', backgroundColor: '#ffffff' } },
             el('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #4f46e5', paddingBottom: '6px' } },
@@ -1184,21 +1425,17 @@
               el('div', { style: { backgroundColor: '#f9fafb', padding: '8px 10px', borderRadius: '4px', border: '1px solid #e5e7eb' } },
                 el('h3', { style: { fontSize: '9.5px', fontWeight: 'bold', margin: '0 0 4px 0', color: '#4f46e5', textTransform: 'uppercase' } }, 'Condiciones Comerciales'),
                 el('p', { style: { fontSize: '9.5px', margin: '2px 0' } }, el('strong', null, 'Tipología: '), unidadSeleccionada.nombreTipologia || unidadSeleccionada.tipo),
-                el('p', { style: { fontSize: '9.5px', margin: '2px 0' } }, el('strong', null, 'Superficie Útil: '), `${unidadSeleccionada.superficieUtil} m²`),
-                unidadSeleccionada.metrajeExterior !== undefined && el('p', { style: { fontSize: '9.5px', margin: '2px 0' } },
-                  el('strong', null, unidadSeleccionada.tipo === 'Duplex Garden' ? 'Patio: ' : 'Azotea: '),
-                  `${unidadSeleccionada.metrajeExterior} m²`
-                ),
+                el('p', { style: { fontSize: '9.5px', margin: '2px 0' } }, el('strong', null, 'Superficie Útil: '), `${unidadSeleccionada.superficieUtil} m² | Exterior: ${unidadSeleccionada.metrajeExterior} m²`),
                 el('div', { style: { borderTop: '1px solid #e5e7eb', marginTop: '3px', paddingTop: '3px', fontSize: '9px' } },
-                  el('p', { style: { margin: '1px 0' } }, `• Depto: ${unidadSeleccionada.precioUF.toLocaleString('es-CL')} UF | Est. 1 (${unidadSeleccionada.estacionamientoAsignadoId}): ${PRECIO_ESTACIONAMIENTO} UF`),
-                  unidadSeleccionada.segundoEstacionamientoId && el('p', { style: { margin: '1px 0', color: '#4f46e5', fontWeight: '600' } }, `• Estacionamiento 2 (${unidadSeleccionada.segundoEstacionamientoId}): ${PRECIO_ESTACIONAMIENTO} UF`),
-                  el('p', { style: { margin: '1px 0' } }, `• Bodega (${unidadSeleccionada.bodegaAsignadaId}): ${PRECIO_BODEGA} UF`),
-                  el('p', { style: { margin: '2px 0 0 0', fontWeight: 'bold', color: '#4f46e5', fontSize: '10.5px' } }, `Total Inversión: ${calculosFinancieros.total.toLocaleString('es-CL')} UF ($ ${calculosFinancieros.totalCLP.toLocaleString('es-CL')} CLP)`)
+                  el('p', { style: { margin: '1px 0' } }, `• Depto: ${unidadSeleccionada.precioUF.toLocaleString('es-CL')} UF`),
+                  el('p', { style: { margin: '1px 0' } }, `• Est. 1 (${unidadSeleccionada.estacionamientoAsignadoId} • ${calculosFinancieros.est1Info ? calculosFinancieros.est1Info.cubierta : ''}): ${calculosFinancieros.est} UF`),
+                  unidadSeleccionada.segundoEstacionamientoId && el('p', { style: { margin: '1px 0', color: '#4f46e5', fontWeight: '600' } }, `• Est. 2 (${unidadSeleccionada.segundoEstacionamientoId} • ${calculosFinancieros.est2Info ? calculosFinancieros.est2Info.cubierta : ''}): ${calculosFinancieros.est2} UF`),
+                  unidadSeleccionada.bodegaAsignadaId && el('p', { style: { margin: '1px 0' } }, `• Bodega (${unidadSeleccionada.bodegaAsignadaId} • ${calculosFinancieros.bodInfo ? calculosFinancieros.bodInfo.sup + ' m²' : ''}): ${calculosFinancieros.bod} UF`),
+                  el('p', { style: { margin: '3px 0 0 0', fontWeight: 'bold', color: '#4f46e5', fontSize: '10.5px' } }, `Total Inversión: ${calculosFinancieros.total.toLocaleString('es-CL')} UF ($ ${calculosFinancieros.totalCLP.toLocaleString('es-CL')} CLP)`)
                 )
               )
             ),
 
-            // Recuadro Financiero Oficial en PDF
             el('div', { style: { marginTop: '10px', backgroundColor: '#eef2ff', padding: '8px 10px', borderRadius: '4px', border: '1px solid #c7d2fe' } },
               el('h3', { style: { fontSize: '9.5px', fontWeight: 'bold', margin: '0 0 5px 0', color: '#3730a3', textTransform: 'uppercase' } },
                 'Estructura de Financiamiento y Crédito Hipotecario'
@@ -1233,7 +1470,7 @@
             ),
 
             el('div', { style: { marginTop: '8px', borderTop: '1px solid #e5e7eb', paddingTop: '4px', fontSize: '7px', color: '#9ca3af', textAlign: 'justify' } },
-              'Simulación de carácter referencial según valor UF del día ($' + valorUF.toLocaleString('es-CL') + '). Dividendos calculados bajo sistema francés de amortización con tasa referencial de mercado; no incluye seguros obligatorios de desgravamen ni sismo/incendio. La aprobación final, tasa definitiva y exigencias de renta dependen exclusivamente de la evaluación comercial del banco o mutuaria acreedora.'
+              'Simulación referencial según valor UF del día ($' + valorUF.toLocaleString('es-CL') + '). Dividendos calculados bajo sistema francés de amortización con tasa referencial de mercado; no incluye seguros obligatorios. La aprobación final y exigencias de renta dependen de la evaluación de la institución financiera.'
             )
           )
         )
